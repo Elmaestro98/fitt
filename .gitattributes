@@ -1,0 +1,13 @@
+# Normalise les fins de ligne : LF dans le depot, quel que soit l'OS du poste.
+# Evite les diffs parasites entre Windows (CRLF) et Vercel/Linux (LF).
+* text=auto eol=lf
+
+# Fichiers binaires : ne jamais toucher au contenu
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
