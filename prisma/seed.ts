@@ -91,7 +91,8 @@ async function main() {
   // --- Adherents ---
   const existants = await prisma.adherent.count({ where: { gymId: gym.id } });
   if (existants > 0) {
-    console.log(`${existants} adherents deja presents — rien a faire.`);
+    console.log(`${existants} adherents deja presents — inchanges.`);
+    await creerAbonnements(gym.id);
     return;
   }
 
@@ -119,6 +120,66 @@ async function main() {
   });
 
   console.log(`${ADHERENTS.length} adherents crees. Dernier numero : ${numero(sequence)}`);
+
+  await creerAbonnements(gym.id);
+}
+
+async function creerAbonnements(gymId: string) {
+  const dejaLa = await prisma.abonnement.count({ where: { gymId } });
+  if (dejaLa > 0) {
+    console.log(`${dejaLa} abonnements deja presents — inchanges.`);
+    return;
+  }
+
+  const formules = await prisma.formule.findMany({
+    where: { gymId, actif: true },
+    orderBy: { ordre: "asc" },
+  });
+  const adherents = await prisma.adherent.findMany({
+    where: { gymId, statut: { in: ["ACTIF", "EXPIRE"] } },
+    orderBy: { creeLe: "desc" },
+  });
+  if (formules.length === 0 || adherents.length === 0) return;
+
+  // Echeances variees, pour voir les trois seuils de la jauge :
+  // rouge (<= 3 j), orange (<= 7 j), normal.
+  const ECHEANCES = [2, 5, 6, 12, 28, 45, 90, 142, 200, 310];
+
+  let crees = 0;
+  for (const [i, adherent] of adherents.entries()) {
+    const formule = formules[i % formules.length];
+    const expire = adherent.statut === "EXPIRE";
+
+    // Un expire s'est termine il y a 5 a 60 jours ; un actif court encore.
+    const joursAvantFin = expire ? -(5 + (i % 55)) : ECHEANCES[i % ECHEANCES.length];
+    const finLe = ilYa(-joursAvantFin);
+
+    // On remonte le debut a partir de la fin, pour que la jauge ait du sens.
+    const dureeJours =
+      formule.dureeUnite === "ANNEE"
+        ? 365 * formule.dureeValeur
+        : formule.dureeUnite === "MOIS"
+          ? 30 * formule.dureeValeur
+          : formule.dureeUnite === "SEMAINE"
+            ? 7 * formule.dureeValeur
+            : formule.dureeValeur;
+    const debutLe = new Date(finLe.getTime() - dureeJours * 86_400_000);
+
+    await prisma.abonnement.create({
+      data: {
+        gymId,
+        adherentId: adherent.id,
+        formuleId: formule.id,
+        nomFormule: formule.nom,
+        prixPaye: formule.prix,
+        debutLe,
+        finLe,
+        statut: expire ? "EXPIRE" : "ACTIF",
+      },
+    });
+    crees++;
+  }
+  console.log(`${crees} abonnements crees.`);
 }
 
 main()
