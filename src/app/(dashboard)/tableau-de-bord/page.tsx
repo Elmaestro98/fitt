@@ -1,6 +1,7 @@
 // Server Component (CLAUDE.md §7) : ce code s'execute sur le serveur.
 import Link from "next/link";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { Logo } from "@/components/ui/logo";
 import {
   getTenantContext,
   AucuneSalleActiveError,
@@ -42,9 +43,7 @@ export default async function PageTableauDeBord() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <header className="mx-auto flex max-w-3xl items-center justify-between">
-        <h1 className="text-xl font-bold text-[#0F172A]">
-          Fi<span className="text-[#FF6B35]">tt</span>
-        </h1>
+        <Logo hauteur={28} prioritaire />
         <div className="flex items-center gap-3">
           <OrganizationSwitcher
             hidePersonal
@@ -93,9 +92,7 @@ function Cadre({
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <header className="mx-auto flex max-w-3xl items-center justify-between">
-        <h1 className="text-xl font-bold text-[#0F172A]">
-          Fi<span className="text-[#FF6B35]">tt</span>
-        </h1>
+        <Logo hauteur={28} prioritaire />
         <div className="flex items-center gap-3">
           <OrganizationSwitcher
             hidePersonal
