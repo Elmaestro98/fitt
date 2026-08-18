@@ -13,6 +13,12 @@ const estRoutePublique = createRouteMatcher([
   "/", // la landing page
   "/connexion(.*)",
   "/inscription(.*)",
+  // Pre-inscription d'un adherent par lien (§4). Le segment est distinct de
+  // /inscription, qui est le SignUp Clerk du STAFF : son catch-all
+  // [[...rest]] capturerait le jeton.
+  // La page est publique, mais pas ouverte : sans un jeton valide de
+  // 32 octets, elle n'affiche rien d'autre qu'un message d'erreur.
+  "/rejoindre(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

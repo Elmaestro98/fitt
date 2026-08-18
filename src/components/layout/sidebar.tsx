@@ -87,6 +87,10 @@ function LienNav({
   const chemin = usePathname();
   const Icone = entree.icone;
 
+  // Ecran pas encore livre : on l'affiche pour annoncer ce qui vient, mais on
+  // ne laisse pas cliquer vers un 404.
+  const aVenir = typeof entree.lot === "number";
+
   // Actif aussi sur les sous-pages : /adherents/cmx123 surligne "Adherents".
   const actif =
     chemin === entree.href || chemin.startsWith(entree.href + "/");
@@ -103,6 +107,11 @@ function LienNav({
       />
       <Icone className="size-[18px] shrink-0" />
       <span className="truncate">{entree.libelle}</span>
+      {aVenir && (
+        <span className="ml-auto rounded-pill bg-white/10 px-1.5 py-0.5 text-[10px] font-medium">
+          Lot {entree.lot}
+        </span>
+      )}
     </>
   );
 
@@ -113,6 +122,18 @@ function LienNav({
       ? "bg-sidebar-active font-medium text-brand"
       : "text-sidebar-text hover:bg-sidebar-active hover:text-white",
   );
+
+  if (aVenir) {
+    return (
+      <span
+        className={cn(classes, "cursor-not-allowed opacity-45")}
+        aria-disabled="true"
+        title={`Disponible au lot ${entree.lot}`}
+      >
+        {contenu}
+      </span>
+    );
+  }
 
   return (
     <Link

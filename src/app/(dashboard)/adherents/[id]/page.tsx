@@ -1,9 +1,9 @@
 // Fiche adherent. Structure reprise de public/fichemembre.png : colonne
 // d'identite a gauche, abonnement / paiements / presences a droite.
 //
-// Les trois cartes de droite dependent de tables qui n'existent pas encore.
-// Elles sont dessinees comme des emplacements annonces, jamais remplies de
-// fausses donnees.
+// Abonnement, paiements et presences sont branches sur leurs vraies tables.
+// Seul le code d'acces reste un emplacement annonce : il attend la generation
+// des QR codes. Aucune carte n'est remplie de fausses donnees.
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Pencil, StickyNote } from "lucide-react";
@@ -21,6 +21,10 @@ import {
 } from "@/lib/data/abonnement";
 import { CarteAbonnement } from "@/components/abonnements/carte-abonnement";
 import { HistoriqueAbonnements } from "@/components/abonnements/historique-abonnements";
+import { CartePaiements } from "@/components/paiements/carte-paiements";
+import { paiementsAdherent, soldeAbonnement } from "@/lib/data/paiement";
+import { CartePresences } from "@/components/pointage/carte-presences";
+import { pointagesAdherent } from "@/lib/data/pointage";
 
 export async function generateMetadata({
   params,
@@ -54,10 +58,16 @@ export default async function PageFicheAdherent({
   const adherent = await trouverAdherent(id);
   if (!adherent) notFound();
 
-  const [actuel, historique] = await Promise.all([
+  const [actuel, historique, paiements, presences] = await Promise.all([
     abonnementActuel(id),
     listerAbonnementsAdherent(id),
+    paiementsAdherent(id),
+    pointagesAdherent(id),
   ]);
+
+  // Le solde depend de l'abonnement en cours : on ne peut le demander qu'une
+  // fois celui-ci connu.
+  const solde = actuel ? await soldeAbonnement(actuel.id) : null;
 
   const nomComplet = `${adherent.prenom} ${adherent.nom}`;
 
@@ -111,13 +121,28 @@ export default async function PageFicheAdherent({
 
           <HistoriqueAbonnements abonnements={historique} />
 
-          <CarteAVenir
-            titre="Historique des paiements"
-            lot={1}
-            description="Date, montant en FCFA, methode (Wave, Orange Money, especes) et statut. Un paiement ne sera jamais supprime, seulement annule avec motif."
+          <CartePaiements
+            adherentId={adherent.id}
+            nomAdherent={nomComplet}
+            abonnement={
+              actuel && solde
+                ? {
+                    id: actuel.id,
+                    nomFormule: actuel.nomFormule,
+                    reste: solde.reste,
+                  }
+                : null
+            }
+            solde={solde}
+            paiements={paiements}
           />
 
-          {adherent.notes ? (
+          <CartePresences
+            passages={presences.passages}
+            total={presences.total}
+          />
+
+          {adherent.notes && (
             <Card>
               <CardHeader
                 titre="Notes internes"
@@ -132,13 +157,6 @@ export default async function PageFicheAdherent({
                 </p>
               </CardBody>
             </Card>
-          ) : (
-            <CarteAVenir
-              titre="Presences"
-              lot={1}
-              hauteur="h-32"
-              description="Historique des passages sur les trois derniers mois, et nombre total de seances."
-            />
           )}
         </div>
       </div>

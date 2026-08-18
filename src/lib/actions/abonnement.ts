@@ -12,6 +12,7 @@ import {
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
   message?: string;
+  succes?: boolean;
 };
 
 function nettoyer(formData: FormData) {
@@ -47,6 +48,8 @@ export async function actionSouscrire(
 
   revalidatePath("/adherents");
   revalidatePath(`/adherents/${adherentId}`);
+  revalidatePath("/abonnements");
+  revalidatePath("/tableau-de-bord");
 
   redirect(`/adherents/${adherentId}`);
 }
@@ -59,9 +62,13 @@ const schemaAnnulation = z.object({
 });
 
 /* Annuler exige un motif : sans lui, personne ne saura dans six mois pourquoi
-   cet abonnement a disparu du chiffre d'affaires (§9). */
+   cet abonnement a disparu du chiffre d'affaires (§9).
+
+   adherentId sert uniquement a revalider la bonne fiche. Il n'entre jamais
+   dans la requete : annulerAbonnement retrouve l'abonnement par son id ET le
+   gymId de la session. */
 export async function actionAnnulerAbonnement(
-  adherentId: string,
+  adherentId: string | null,
   _precedent: EtatFormulaire,
   formData: FormData,
 ): Promise<EtatFormulaire> {
@@ -75,11 +82,19 @@ export async function actionAnnulerAbonnement(
 
   try {
     await annulerAbonnement(id, resultat.data.motif);
-  } catch {
-    return { message: "L'annulation a echoue. Reessayez." };
+  } catch (erreur) {
+    return {
+      message:
+        erreur instanceof Error
+          ? erreur.message
+          : "L'annulation a echoue. Reessayez.",
+    };
   }
 
   revalidatePath("/adherents");
-  revalidatePath(`/adherents/${adherentId}`);
-  return {};
+  if (adherentId) revalidatePath(`/adherents/${adherentId}`);
+  revalidatePath("/abonnements");
+  revalidatePath("/tableau-de-bord");
+
+  return { succes: true };
 }

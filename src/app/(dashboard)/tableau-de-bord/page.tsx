@@ -1,17 +1,42 @@
-// Server Component (CLAUDE.md §7). La barre laterale et la barre haute
-// viennent du layout de (dashboard) : cette page n'ecrit que son contenu.
+// Tableau de bord. Structure reprise de public/maquette.png.
+// Server Component : toutes les agregations partent vers PostgreSQL, rien
+// n'est calcule dans le navigateur.
 import Link from "next/link";
-import { Building2, Plus } from "lucide-react";
+import {
+  CalendarClock,
+  ChartPie,
+  Plus,
+  TrendingUp,
+  UserCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { StatCard } from "@/components/tableau-bord/stat-card";
+import { GrapheFrequentation } from "@/components/tableau-bord/graphe-frequentation";
+import { GrapheSouscriptions } from "@/components/tableau-bord/graphe-souscriptions";
+import { RepartitionFormules } from "@/components/tableau-bord/repartition-formules";
+import { TableExpirations } from "@/components/tableau-bord/table-expirations";
+import { synchroniserExpirations } from "@/lib/data/abonnement";
+import {
+  abonnementsExpirantBientot,
+  evolutionSouscriptions,
+  frequentationHebdomadaire,
+  repartitionFormules,
+  statistiquesTableauDeBord,
+} from "@/lib/data/tableau-bord";
 import {
   getTenantContext,
   AucuneSalleActiveError,
   SalleIntrouvableError,
 } from "@/lib/tenant";
+import { formatFCFA } from "@/lib/utils/format";
 
-/* Date du jour, en francais et au fuseau de Dakar (CLAUDE.md §8). */
+export const metadata = { title: "Tableau de bord — Fitt" };
+
 function aujourdhui() {
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
@@ -23,27 +48,21 @@ function aujourdhui() {
 }
 
 export default async function PageTableauDeBord() {
-  let contexte;
+  let gym;
   try {
-    contexte = await getTenantContext();
+    ({ gym } = await getTenantContext());
   } catch (erreur) {
     if (erreur instanceof AucuneSalleActiveError) {
       return (
         <Avertissement titre="Aucune salle active">
-          Utilisez le selecteur de salle en haut a droite pour creer ou
-          selectionner votre salle.
+          Utilisez le selecteur de salle en haut a droite.
         </Avertissement>
       );
     }
     if (erreur instanceof SalleIntrouvableError) {
       return (
         <Avertissement titre="Salle non initialisee">
-          Votre organisation existe, mais sa fiche n&apos;a pas encore ete
-          creee.{" "}
-          <Link
-            href="/salle/initialisation"
-            className="font-medium text-brand underline"
-          >
+          <Link href="/salle/initialisation" className="font-medium underline">
             Terminer l&apos;initialisation
           </Link>
         </Avertissement>
@@ -52,13 +71,24 @@ export default async function PageTableauDeBord() {
     throw erreur;
   }
 
-  const { gymId, gym, userId, orgRole } = contexte;
+  // Les statuts echus sont mis a jour avant lecture, sinon les compteurs
+  // afficheraient comme actifs des abonnements termines hier.
+  await synchroniserExpirations();
+
+  const [stats, evolution, repartition, expirations, frequentation] =
+    await Promise.all([
+      statistiquesTableauDeBord(),
+      evolutionSouscriptions(),
+      repartitionFormules(),
+      abonnementsExpirantBientot(),
+      frequentationHebdomadaire(),
+    ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         titre="Vue d'ensemble"
-        sousTitre={`Aujourd'hui, ${aujourdhui()}`}
+        sousTitre={`${gym.nom} · aujourd'hui, ${aujourdhui()}`}
         action={
           <Link href="/adherents/nouveau">
             <Button>
@@ -69,37 +99,132 @@ export default async function PageTableauDeBord() {
         }
       />
 
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Adherents actifs"
+          valeur={String(stats.adherentsActifs)}
+          icone={<Users className="size-4" />}
+          precision={`sur ${stats.adherentsTotal} au fichier`}
+        />
+        <StatCard
+          label="Expirations (7 j)"
+          valeur={String(stats.expirations7j)}
+          icone={<CalendarClock className="size-4" />}
+          teinte="warning"
+          precision="abonnements a renouveler"
+        />
+        <StatCard
+          label="Souscrit ce mois"
+          valeur={formatFCFA(stats.souscritMois)}
+          icone={<TrendingUp className="size-4" />}
+          teinte="success"
+          variation={stats.variationCA}
+          precision="aucune reference le mois dernier"
+        />
+        <StatCard
+          label="Nouveaux adherents"
+          valeur={String(stats.nouveauxMois)}
+          icone={<UserPlus className="size-4" />}
+          teinte="info"
+          variation={stats.variationNouveaux}
+          precision="inscrits ce mois-ci"
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader
+            titre="Souscriptions (6 mois)"
+            icone={<TrendingUp className="size-4 text-brand" />}
+          />
+          <CardBody>
+            <GrapheSouscriptions donnees={evolution} />
+            <p className="mt-3 text-xs text-muted">
+              Montants souscrits, pas encaisses.{" "}
+              <Link href="/paiements" className="text-brand hover:underline">
+                Voir les encaissements reels
+              </Link>
+              .
+            </p>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            titre="Repartition"
+            icone={<ChartPie className="size-4 text-brand" />}
+          />
+          <CardBody>
+            {repartition.total === 0 ? (
+              <p className="py-8 text-center text-sm text-muted">
+                Aucun abonnement en cours.
+              </p>
+            ) : (
+              <RepartitionFormules
+                lignes={repartition.lignes}
+                total={repartition.total}
+              />
+            )}
+          </CardBody>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader
+          titre="Abonnements expirant bientot"
+          icone={<CalendarClock className="size-4 text-brand" />}
+          action={
+            <Link
+              href="/adherents?statut=ACTIF"
+              className="text-sm font-medium text-brand hover:underline"
+            >
+              Voir tout
+            </Link>
+          }
+        />
+        {expirations.length === 0 ? (
+          <EmptyState
+            icone={<CalendarClock className="size-5" />}
+            titre="Aucune echeance sous 30 jours"
+            description="Tous les abonnements en cours courent encore plus d'un mois."
+          />
+        ) : (
+          <TableExpirations lignes={expirations} />
+        )}
+      </Card>
+
       <Card>
         <CardHeader
-          titre={gym.nom}
-          icone={<Building2 className="size-4 text-brand" />}
+          titre="Frequentation (7 jours)"
+          icone={<UserCheck className="size-4 text-brand" />}
+          action={
+            <Link
+              href="/pointage"
+              className="text-sm font-medium text-brand hover:underline"
+            >
+              Ouvrir la borne
+            </Link>
+          }
         />
         <CardBody>
-          <p className="text-sm text-muted">
-            {gym.ville ?? "Ville non renseignee"}
-            {" · "}
-            {gym.actif ? "Compte actif" : "Compte desactive"}
-          </p>
-
-          <dl className="mt-5 divide-y divide-line text-sm">
-            <Ligne label="gymId (filtre toutes les requetes)" valeur={gymId} mono />
-            <Ligne label="clerkOrgId (le pont vers Clerk)" valeur={gym.clerkOrgId} mono />
-            <Ligne label="userId" valeur={userId} mono />
-            <Ligne label="Votre role" valeur={orgRole ?? "—"} mono />
-            <Ligne
-              label="Salle creee le"
-              valeur={new Intl.DateTimeFormat("fr-FR", {
-                dateStyle: "short",
-                timeStyle: "short",
-                timeZone: "Africa/Dakar",
-              }).format(gym.creeLe)}
-            />
-          </dl>
-
-          <p className="mt-5 rounded-control bg-sunken p-3 text-sm text-muted">
-            Les indicateurs, le graphe de revenus et la liste des abonnements
-            expirants arriveront avec la table Adherent.
-          </p>
+          {frequentation.total === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">
+              Aucun passage cette semaine. Les entrees apparaitront ici des le
+              premier pointage.
+            </p>
+          ) : (
+            <>
+              <GrapheFrequentation donnees={frequentation.jours} />
+              <p className="mt-3 text-xs text-muted">
+                {frequentation.total} passage
+                {frequentation.total > 1 ? "s" : ""} sur sept jours
+                {frequentation.pointe
+                  ? ` · affluence maximale vers ${frequentation.pointe}`
+                  : ""}
+                .
+              </p>
+            </>
+          )}
         </CardBody>
       </Card>
     </div>
@@ -120,26 +245,5 @@ function Avertissement({
         <p className="mt-2 text-sm text-ink/80">{children}</p>
       </CardBody>
     </Card>
-  );
-}
-
-function Ligne({
-  label,
-  valeur,
-  mono = false,
-}: {
-  label: string;
-  valeur: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex justify-between gap-4 py-3">
-      <dt className="text-muted">{label}</dt>
-      <dd
-        className={`text-right text-ink ${mono ? "font-mono text-xs" : "font-medium"}`}
-      >
-        {valeur}
-      </dd>
-    </div>
   );
 }

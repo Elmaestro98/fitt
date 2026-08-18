@@ -16,6 +16,8 @@ const STATUTS = [
   { valeur: "ACTIF", libelle: "Actifs" },
   { valeur: "EXPIRE", libelle: "Expires" },
   { valeur: "SUSPENDU", libelle: "Suspendus" },
+  // Les pre-inscriptions par lien atterrissent ici, en attente du staff (§4).
+  { valeur: "EN_ATTENTE_VALIDATION", libelle: "En attente" },
   { valeur: "ARCHIVE", libelle: "Archives" },
 ] as const;
 

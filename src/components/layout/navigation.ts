@@ -15,7 +15,11 @@ export type EntreeNavigation = {
   libelle: string;
   href: string;
   icone: LucideIcon;
-  /** Fonctionnalite pas encore livree : affichee, mais non cliquable. */
+  /**
+   * Renseigne UNIQUEMENT tant que l'ecran n'existe pas : l'entree reste
+   * visible — le gerant voit ce qui vient — mais n'est pas cliquable, et
+   * annonce son lot. Retirer ce champ le jour ou la page est livree.
+   */
   lot?: number;
 };
 
@@ -23,11 +27,11 @@ export type EntreeNavigation = {
    "Membres" -> "Adherents" et "Presences" -> "Pointage" (CLAUDE.md §11). */
 export const NAVIGATION: EntreeNavigation[] = [
   { libelle: "Tableau de bord", href: "/tableau-de-bord", icone: LayoutDashboard },
-  { libelle: "Adherents", href: "/adherents", icone: Users, lot: 1 },
-  { libelle: "Abonnements", href: "/abonnements", icone: CreditCard, lot: 1 },
-  { libelle: "Formules", href: "/formules", icone: Tag, lot: 1 },
-  { libelle: "Paiements", href: "/paiements", icone: Wallet, lot: 1 },
-  { libelle: "Pointage", href: "/pointage", icone: UserCheck, lot: 1 },
+  { libelle: "Adherents", href: "/adherents", icone: Users },
+  { libelle: "Abonnements", href: "/abonnements", icone: CreditCard },
+  { libelle: "Formules", href: "/formules", icone: Tag },
+  { libelle: "Paiements", href: "/paiements", icone: Wallet },
+  { libelle: "Pointage", href: "/pointage", icone: UserCheck },
   { libelle: "Cours & coachs", href: "/cours", icone: Dumbbell, lot: 4 },
   { libelle: "Rapports", href: "/rapports", icone: BarChart3, lot: 5 },
 ];

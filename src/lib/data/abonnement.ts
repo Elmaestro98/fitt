@@ -171,3 +171,157 @@ export async function synchroniserExpirations() {
     });
   }
 }
+
+/* --- Liste globale (page /abonnements) ------------------------------------ */
+
+const JOUR = 86_400_000;
+
+/* Pagination cote serveur des la premiere ligne (§7) : une salle de 400
+   adherents accumule des milliers d'abonnements en trois ans. */
+export const PAR_PAGE = 25;
+
+export const VUES = [
+  "tous",
+  "en-cours",
+  "bientot",
+  "expires",
+  "annules",
+] as const;
+
+export type VueAbonnements = (typeof VUES)[number];
+
+/**
+ * Traduit l'onglet choisi en criteres Prisma.
+ *
+ * Ces criteres viennent s'AJOUTER au gymId, jamais le remplacer : la fonction
+ * ne renvoie que la partie metier du where.
+ */
+function filtreVue(vue: VueAbonnements, maintenant: Date) {
+  switch (vue) {
+    case "en-cours":
+      return { statut: "ACTIF" as const };
+    case "bientot":
+      // L'index (gymId, finLe) du §10 sert exactement cette requete.
+      return {
+        statut: "ACTIF" as const,
+        finLe: {
+          gte: maintenant,
+          lte: new Date(maintenant.getTime() + 7 * JOUR),
+        },
+      };
+    case "expires":
+      return { statut: "EXPIRE" as const };
+    case "annules":
+      return { statut: "ANNULE" as const };
+    default:
+      return {};
+  }
+}
+
+export type FiltresAbonnements = {
+  page?: number;
+  recherche?: string;
+  vue?: VueAbonnements;
+};
+
+export async function listerAbonnements({
+  page = 1,
+  recherche,
+  vue = "tous",
+}: FiltresAbonnements = {}) {
+  const { gymId } = await getTenantContext();
+
+  const maintenant = new Date();
+  const termes = recherche?.trim();
+
+  const where = {
+    gymId,
+    ...filtreVue(vue, maintenant),
+    ...(termes
+      ? {
+          OR: [
+            { nomFormule: { contains: termes, mode: "insensitive" as const } },
+            {
+              adherent: {
+                prenom: { contains: termes, mode: "insensitive" as const },
+              },
+            },
+            {
+              adherent: {
+                nom: { contains: termes, mode: "insensitive" as const },
+              },
+            },
+            {
+              adherent: {
+                numero: { contains: termes, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  // Les vues "vivantes" se lisent par urgence (la prochaine echeance en
+  // premier) ; les vues d'archive, par anteriorite.
+  const orderBy =
+    vue === "en-cours" || vue === "bientot"
+      ? ({ finLe: "asc" } as const)
+      : ({ debutLe: "desc" } as const);
+
+  const [abonnements, total] = await Promise.all([
+    prisma.abonnement.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * PAR_PAGE,
+      take: PAR_PAGE,
+      include: {
+        adherent: {
+          select: {
+            id: true,
+            prenom: true,
+            nom: true,
+            numero: true,
+            photoUrl: true,
+          },
+        },
+      },
+    }),
+    prisma.abonnement.count({ where }),
+  ]);
+
+  return {
+    abonnements,
+    total,
+    page,
+    pages: Math.max(1, Math.ceil(total / PAR_PAGE)),
+  };
+}
+
+/** Compteurs des onglets, et chiffre souscrit encore en cours. */
+export async function statistiquesAbonnements() {
+  const { gymId } = await getTenantContext();
+  const maintenant = new Date();
+
+  const [tous, enCours, bientot, expires, annules, encours] = await Promise.all([
+    prisma.abonnement.count({ where: { gymId } }),
+    prisma.abonnement.count({ where: { gymId, statut: "ACTIF" } }),
+    prisma.abonnement.count({
+      where: {
+        gymId,
+        statut: "ACTIF",
+        finLe: { gte: maintenant, lte: new Date(maintenant.getTime() + 7 * JOUR) },
+      },
+    }),
+    prisma.abonnement.count({ where: { gymId, statut: "EXPIRE" } }),
+    prisma.abonnement.count({ where: { gymId, statut: "ANNULE" } }),
+    prisma.abonnement.aggregate({
+      where: { gymId, statut: "ACTIF" },
+      _sum: { prixPaye: true },
+    }),
+  ]);
+
+  return {
+    compteurs: { tous, "en-cours": enCours, bientot, expires, annules },
+    montantEnCours: encours._sum.prixPaye ?? 0,
+  };
+}

@@ -1,6 +1,6 @@
 // Boutons de changement de statut. Chacun est un <form> qui appelle la Server
 // Action : pas de fetch, pas de JSON, et ca fonctionne meme sans JavaScript.
-import { Archive, RotateCcw, Ban } from "lucide-react";
+import { Archive, Check, RotateCcw, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { actionChangerStatut } from "@/lib/actions/adherent";
 
@@ -13,10 +13,20 @@ export function ActionsStatut({
 }) {
   const archive = statut === "ARCHIVE";
   const suspendu = statut === "SUSPENDU";
+  const enAttente = statut === "EN_ATTENTE_VALIDATION";
 
   return (
     <div className="flex flex-col gap-2">
-      {suspendu || archive ? (
+      {/* Une pre-inscription par lien n'est pas encore une adhesion (§4) :
+          la premiere action possible est de la valider. */}
+      {enAttente && (
+        <BoutonStatut id={id} statut="ACTIF" variante="contour">
+          <Check className="size-4" />
+          Valider l&apos;inscription
+        </BoutonStatut>
+      )}
+
+      {!enAttente && (suspendu || archive) ? (
         <BoutonStatut id={id} statut="ACTIF" variante="contour">
           <RotateCcw className="size-4" />
           Reactiver

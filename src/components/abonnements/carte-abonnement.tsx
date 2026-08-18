@@ -3,6 +3,7 @@ import { CalendarClock, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { BoutonAnnuler } from "@/components/abonnements/bouton-annuler";
 import { formatFCFA, formatDateLongue } from "@/lib/utils/format";
 import { joursRestants } from "@/lib/utils/duree";
 import { cn } from "@/lib/utils/cn";
@@ -68,12 +69,19 @@ export function CarteAbonnement({
         titre="Abonnement en cours"
         icone={<CalendarClock className="size-4 text-brand" />}
         action={
-          <Link href={`/adherents/${adherentId}/abonnement`}>
-            <Button variante="contour" taille="sm">
-              <RefreshCw className="size-4" />
-              Renouveler
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <BoutonAnnuler
+              abonnementId={abonnement.id}
+              adherentId={adherentId}
+              nomFormule={abonnement.nomFormule}
+            />
+            <Link href={`/adherents/${adherentId}/abonnement`}>
+              <Button variante="contour" taille="sm">
+                <RefreshCw className="size-4" />
+                Renouveler
+              </Button>
+            </Link>
+          </div>
         }
       />
       <CardBody>

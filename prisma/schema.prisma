@@ -44,6 +44,25 @@ enum StatutAbonnement {
   ANNULE
 }
 
+enum MethodePaiement {
+  ESPECES
+  WAVE
+  ORANGE_MONEY
+}
+
+// Comment le passage a ete saisi. Sert aux rapports, jamais a la logique.
+enum SourcePointage {
+  KIOSQUE // borne a l'entree, en libre service
+  STAFF   // saisi par la reception
+}
+
+// ENCAISSEMENT : de l'argent entre, montant positif.
+// ANNULATION   : l'ecriture de contrepartie exigee par le §9, montant negatif.
+enum TypePaiement {
+  ENCAISSEMENT
+  ANNULATION
+}
+
 // =============================================================================
 // Gym — une salle de sport cliente. C'est le "tenant".
 // Regle n°1 du projet : toute autre table porte un gymId pointant vers celle-ci.
@@ -72,6 +91,9 @@ model Gym {
   adherents   Adherent[]
   formules    Formule[]
   abonnements Abonnement[]
+  paiements   Paiement[]
+  pointages   Pointage[]
+  liens       LienInscription[]
 
   @@map("gyms")
 }
@@ -127,7 +149,15 @@ model Adherent {
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
+  // D'ou vient cette fiche : saisie par le staff (null) ou nee d'un lien
+  // d'inscription. Sert a mesurer ce que le lien rapporte, et a retrouver
+  // les fiches a verifier quand un lien a ete diffuse trop largement.
+  lienInscriptionId String?
+  lienInscription   LienInscription? @relation(fields: [lienInscriptionId], references: [id], onDelete: SetNull)
+
   abonnements Abonnement[]
+  paiements   Paiement[]
+  pointages   Pointage[]
 
   // --- Contraintes et index (CLAUDE.md §10) ---
 
@@ -224,10 +254,174 @@ model Abonnement {
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
+  paiements Paiement[]
+
   // Requete la plus frequente de l'application (§10) : "quels abonnements
   // expirent bientot dans cette salle ?"
   @@index([gymId, finLe])
   @@index([gymId, adherentId])
   @@index([gymId, statut])
   @@map("abonnements")
+}
+
+// =============================================================================
+// Paiement — une ecriture du journal de caisse de la salle.
+//
+// /!\ REGLE CRITIQUE (CLAUDE.md §9)
+// Ce journal est en AJOUT SEUL. Une ligne ecrite n'est jamais modifiee, jamais
+// supprimee. Annuler un encaissement, c'est ecrire une SECONDE ligne de montant
+// negatif qui pointe vers la premiere — l'ecriture de contrepartie du
+// comptable.
+//
+// Consequence pratique : tout total est un simple SUM(montant). Les
+// annulations s'y neutralisent d'elles-memes, il est donc impossible d'oublier
+// d'exclure un paiement annule d'une agregation. C'est exactement la raison de
+// ce choix.
+// =============================================================================
+model Paiement {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Restrict)
+
+  // Facultatif : la salle encaisse aussi des frais d'inscription ou un
+  // arriere, sans qu'un abonnement precis soit en jeu.
+  abonnementId String?
+  abonnement   Abonnement? @relation(fields: [abonnementId], references: [id], onDelete: Restrict)
+
+  // Entier en FCFA (§8). NEGATIF sur une ligne d'ANNULATION, et seulement
+  // sur celle-la.
+  montant Int
+
+  methode MethodePaiement
+  type    TypePaiement    @default(ENCAISSEMENT)
+
+  // Numero de transaction Wave / Orange Money, ou numero de recu papier.
+  reference String?
+  note      String?
+
+  // --- L'ecriture de contrepartie ---
+  // Renseignes uniquement sur une ligne d'ANNULATION.
+  // @unique : un encaissement ne peut etre annule qu'une fois. C'est la base
+  // qui l'interdit, pas seulement le code.
+  annuleId String?   @unique
+  annule   Paiement? @relation("Contrepartie", fields: [annuleId], references: [id], onDelete: Restrict)
+  contrepartie Paiement? @relation("Contrepartie")
+
+  // Obligatoire sur une ANNULATION (§9). Verifie par Zod avant ecriture :
+  // PostgreSQL ne sait pas exprimer "obligatoire si type = ANNULATION".
+  motif String?
+
+  // Date de l'encaissement reel, saisie par le staff : le gerant peut
+  // enregistrer lundi matin l'argent recu samedi soir.
+  encaisseLe DateTime @default(now())
+
+  creeLe DateTime @default(now())
+  // Pas de majLe : une ligne de ce journal ne se modifie pas.
+
+  // "Combien a-t-on encaisse ce mois-ci ?" — requete du tableau de bord.
+  @@index([gymId, encaisseLe])
+  @@index([gymId, adherentId])
+  @@index([gymId, abonnementId])
+  @@map("paiements")
+}
+
+// =============================================================================
+// Pointage — le passage d'un adherent a l'entree de la salle.
+//
+// /!\ CONTRAINTE STRUCTURANTE (CLAUDE.md §9)
+// "Bloquer le pointage en cas de coupure reseau" est un interdit absolu : la
+// salle doit rester ouverte meme quand la connexion tombe. Le kiosque garde
+// donc les passages dans une file locale et les rejoue au retour du reseau.
+//
+// D'ou cleLocale : la borne genere elle-meme l'identifiant du passage, avant
+// tout appel au serveur. Rejouer deux fois la meme file ne cree pas de
+// doublon, c'est la contrainte unique qui l'interdit — au niveau de la base,
+// pas dans le code.
+// =============================================================================
+model Pointage {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Restrict)
+
+  // Heure REELLE du passage, pas celle de l'enregistrement : un passage garde
+  // en file locale a 18 h et synchronise a 21 h reste un passage de 18 h.
+  horodatage DateTime @default(now())
+
+  source SourcePointage @default(KIOSQUE)
+
+  // Photographie du statut au moment du passage, dans le meme esprit que le
+  // prix fige d'un abonnement (§9) : "combien d'entrees d'adherents expires
+  // ce mois-ci ?" doit rester repondable dans un an.
+  statutAdherent StatutAdherent
+
+  // Identifiant d'idempotence genere par la borne (crypto.randomUUID).
+  cleLocale String
+
+  creeLe DateTime @default(now())
+
+  // Rejouer la file locale est sans risque : la base refuse le doublon.
+  @@unique([gymId, cleLocale])
+  // Index critique du §10 : "les passages d'aujourd'hui dans cette salle".
+  @@index([gymId, horodatage])
+  // Anti-rebond : "cet adherent a-t-il deja pointe il y a deux minutes ?"
+  @@index([gymId, adherentId, horodatage])
+  @@map("pointages")
+}
+
+// =============================================================================
+// LienInscription — le lien de pre-inscription genere par la salle.
+//
+// /!\ REGLE CRITIQUE (CLAUDE.md §4 et §9)
+// Le jeton n'est JAMAIS stocke en clair : "une lecture de la base donnerait
+// acces a tous les espaces". Seule son empreinte SHA-256 vit ici. Le jeton
+// lui-meme n'existe qu'une fois, dans la reponse de creation — exactement
+// comme une cle d'API. Personne, pas meme un administrateur de la base, ne
+// peut le retrouver ensuite.
+//
+// Ce lien ne cree PAS un compte adherent (§4 : il n'existe pas de page
+// "creer mon compte"). Il cree une fiche en EN_ATTENTE_VALIDATION, que le
+// staff doit valider. Une salle dont personne n'utilise le lien reste
+// parfaitement fonctionnelle.
+// =============================================================================
+model LienInscription {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  // SHA-256 (64 caracteres hexa) d'un jeton de 32 octets aleatoires.
+  // Unique sur toute la base : c'est par lui qu'on retrouve la salle, sans
+  // qu'aucun gymId ne circule dans l'URL (§9).
+  jetonHache String @unique
+
+  // Pour que le gerant s'y retrouve : "Affiche accueil", "Rentree septembre".
+  libelle String
+
+  expireLe  DateTime
+  revoqueLe DateTime?
+
+  // null = illimite (une affiche a l'accueil). Le defaut propose par
+  // l'interface est 1, conformement au "usage unique" du §4 ; un lien
+  // multi-usages est un choix explicite du gerant.
+  usagesMax Int?
+  usages    Int  @default(0)
+
+  // userId Clerk du membre du staff qui a genere le lien.
+  creeParUserId String?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  adherents Adherent[]
+
+  @@index([gymId, creeLe])
+  @@map("liens_inscription")
 }

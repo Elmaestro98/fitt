@@ -58,6 +58,104 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ===========================================================================
+   Pont vers shadcn/ui.
+
+   Les composants shadcn utilisent leurs propres noms de variables
+   (--background, --primary, --border...). Plutot que d'accepter leur palette
+   noir et blanc par defaut, on les branche sur NOS jetons ci-dessus.
+
+   Consequence : un <Button> shadcn sort en orange Fitt sans aucune retouche,
+   et un changement de charte se fait toujours au meme endroit.
+   =========================================================================== */
+:root {
+  --radius: 12px;
+
+  --background: #f7f9fb; /* canvas */
+  --foreground: #191c1e; /* ink */
+
+  --card: #ffffff;
+  --card-foreground: #191c1e;
+  --popover: #ffffff;
+  --popover-foreground: #191c1e;
+
+  --primary: #ff6b35; /* brand */
+  --primary-foreground: #ffffff;
+
+  --secondary: #f2f4f6; /* sunken */
+  --secondary-foreground: #191c1e;
+  --muted: #f2f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f2f4f6;
+  --accent-foreground: #191c1e;
+
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+
+  --border: #e2e8f0; /* line */
+  --input: #e2e8f0;
+  --ring: #ff6b35;
+
+  /* Palette des graphiques. Ordre voulu : l'orange de marque en premier,
+     puis des teintes qui restent distinguables en niveaux de gris. */
+  --chart-1: #ff6b35;
+  --chart-2: #00af79;
+  --chart-3: #2b4ba8;
+  --chart-4: #f59e0b;
+  --chart-5: #94a3b8;
+
+  /* Composants de barre laterale shadcn, alignes sur la notre. */
+  --sidebar: #2d3133;
+  --sidebar-foreground: #a1a7ab;
+  --sidebar-primary: #ff6b35;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #363a3c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #ff6b35;
+}
+
+/* @theme inline : contrairement au bloc @theme plus haut, celui-ci REFERENCE
+   les variables de :root au lieu de figer des valeurs. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-bg: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar-bg: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
 /* Le back-office est utilise a l'accueil d'une salle, en plein jour, souvent
    sur un telephone. Pas de mode sombre : un seul rendu, maitrise. */
 html {

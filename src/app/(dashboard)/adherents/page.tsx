@@ -2,7 +2,7 @@
 // PostgreSQL, aucune donnee de filtrage ne transite par le navigateur.
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Plus, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -70,12 +70,20 @@ export default async function PageAdherents({
             : "Aucun adherent pour le moment"
         }
         action={
-          <Link href="/adherents/nouveau">
-            <Button>
-              <Plus className="size-4" />
-              Nouvel adherent
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/adherents/invitations">
+              <Button variante="contour">
+                <UserPlus className="size-4" />
+                <span className="hidden sm:inline">Inviter</span>
+              </Button>
+            </Link>
+            <Link href="/adherents/nouveau">
+              <Button>
+                <Plus className="size-4" />
+                Nouvel adherent
+              </Button>
+            </Link>
+          </div>
         }
       />
 
