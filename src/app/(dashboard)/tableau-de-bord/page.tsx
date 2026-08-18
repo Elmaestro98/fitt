@@ -60,10 +60,12 @@ export default async function PageTableauDeBord() {
         titre="Vue d'ensemble"
         sousTitre={`Aujourd'hui, ${aujourdhui()}`}
         action={
-          <Button disabled>
-            <Plus className="size-4" />
-            Nouvel adherent
-          </Button>
+          <Link href="/adherents/nouveau">
+            <Button>
+              <Plus className="size-4" />
+              Nouvel adherent
+            </Button>
+          </Link>
         }
       />
 

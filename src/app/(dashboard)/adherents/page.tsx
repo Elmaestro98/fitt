@@ -1,6 +1,7 @@
 // Liste des adherents. Server Component : la requete part directement vers
 // PostgreSQL, aucune donnee de filtrage ne transite par le navigateur.
 import { Suspense } from "react";
+import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -69,10 +70,12 @@ export default async function PageAdherents({
             : "Aucun adherent pour le moment"
         }
         action={
-          <Button disabled>
-            <Plus className="size-4" />
-            Nouvel adherent
-          </Button>
+          <Link href="/adherents/nouveau">
+            <Button>
+              <Plus className="size-4" />
+              Nouvel adherent
+            </Button>
+          </Link>
         }
       />
 
@@ -94,10 +97,12 @@ export default async function PageAdherents({
               titre="Votre premier adherent"
               description="Enregistrez les adherents de votre salle pour suivre leurs abonnements, leurs paiements et leurs passages."
               action={
-                <Button disabled>
-                  <Plus className="size-4" />
-                  Nouvel adherent
-                </Button>
+                <Link href="/adherents/nouveau">
+                  <Button>
+                    <Plus className="size-4" />
+                    Nouvel adherent
+                  </Button>
+                </Link>
               }
             />
           )
