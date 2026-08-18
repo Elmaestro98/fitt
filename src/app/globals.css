@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ===========================================================================
+   Jetons de design de Fitt — CLAUDE.md §11.
+   Palette relevee au pixel sur public/maquette.png, fichemembre.png, kios.png.
+
+   Tout ce qui est declare ici devient utilisable comme classe Tailwind :
+     --color-brand   ->  bg-brand   text-brand   border-brand
+     --radius-card   ->  rounded-card
+
+   Ne jamais ecrire une couleur en dur (bg-[#FF6B35]) dans un composant :
+   elle deviendrait invisible le jour d'un changement de charte.
+   =========================================================================== */
+@theme {
+  /* --- Marque ------------------------------------------------------------ */
+  --color-brand: #ff6b35; /* boutons, liens d'action, accents */
+  --color-brand-hover: #e85a24; /* survol du bouton principal */
+  --color-brand-soft: #fff1ec; /* fond des pastilles d'icone */
+
+  /* --- Barre laterale ---------------------------------------------------- */
+  --color-sidebar: #2d3133;
+  --color-sidebar-active: #363a3c; /* ligne de menu selectionnee */
+  --color-sidebar-text: #a1a7ab; /* items non selectionnes */
+
+  /* --- Surfaces ---------------------------------------------------------- */
+  --color-canvas: #f7f9fb; /* fond de la zone de contenu */
+  --color-surface: #ffffff; /* cartes, tableaux, modales */
+  --color-sunken: #f2f4f6; /* champs au repos, fond du kiosque */
+
+  /* --- Texte et traits --------------------------------------------------- */
+  --color-ink: #191c1e; /* titres, valeurs */
+  --color-muted: #6b7280; /* labels, en-tetes de tableau */
+  --color-line: #e2e8f0; /* separateurs, contours */
+
+  /* --- Etats ------------------------------------------------------------- */
+  --color-success: #00af79;
+  --color-success-soft: #e4f7f0;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fef4e6;
+  --color-danger: #ba1a1a;
+  --color-danger-soft: #fbeaea;
+
+  /* --- Couleurs de marque des moyens de paiement -------------------------
+     Un gerant senegalais reconnait Wave et Orange Money a leur couleur
+     avant meme de lire le mot. Ce ne sont pas des couleurs decoratives. */
+  --color-wave: #00aeef;
+  --color-orangemoney: #ff6600;
+  --color-whatsapp: #25d366;
+
+  /* --- Formes ------------------------------------------------------------ */
+  --radius-card: 12px;
+  --radius-control: 10px;
+  --radius-pill: 9999px;
+
+  /* --- Typographie -------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Le back-office est utilise a l'accueil d'une salle, en plein jour, souvent
+   sur un telephone. Pas de mode sombre : un seul rendu, maitrise. */
+html {
+  color-scheme: light only;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cibles tactiles >= 44 px (CLAUDE.md §11) : on garantit le minimum sur tout
+   element interactif, sans avoir a y penser dans chaque composant. */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  [role="tab"] {
+    min-height: 44px;
+  }
 }
