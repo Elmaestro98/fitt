@@ -9,7 +9,7 @@ const tons = {
   alerte: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
   neutre: "bg-sunken text-muted",
-  info: "bg-[#DAE2FD] text-[#2B4BA8]",
+  info: "bg-info-soft text-info",
 } as const;
 
 type BadgeProps = React.ComponentProps<"span"> & {

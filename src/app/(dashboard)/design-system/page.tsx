@@ -5,18 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, BadgeStatut } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata = { title: "Design system — Fitt" };
 
 export default function PageDesignSystem() {
   return (
-    <main className="mx-auto max-w-4xl space-y-8 p-6">
-      <header>
-        <h1 className="text-2xl font-bold text-ink">Design system</h1>
-        <p className="mt-1 text-sm text-muted">
-          Primitives relevees sur les maquettes du 18/08/2026.
-        </p>
-      </header>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <PageHeader
+        titre="Design system"
+        sousTitre="Primitives relevees sur les maquettes du 18/08/2026."
+      />
 
       <Section titre="Couleurs">
         <div className="flex flex-wrap gap-3">
@@ -123,7 +122,7 @@ export default function PageDesignSystem() {
           </Card>
         </div>
       </Section>
-    </main>
+    </div>
   );
 }
 

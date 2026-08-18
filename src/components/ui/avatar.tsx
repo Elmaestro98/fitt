@@ -19,7 +19,7 @@ const tailles = {
 const TEINTES = [
   "bg-brand-soft text-brand",
   "bg-success-soft text-success",
-  "bg-[#DAE2FD] text-[#2B4BA8]",
+  "bg-info-soft text-info",
   "bg-warning-soft text-warning",
   "bg-sunken text-muted",
 ] as const;

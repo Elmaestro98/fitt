@@ -39,6 +39,8 @@
   --color-warning-soft: #fef4e6;
   --color-danger: #ba1a1a;
   --color-danger-soft: #fbeaea;
+  --color-info: #2b4ba8; /* badge de formule "Mensuel" */
+  --color-info-soft: #dae2fd;
 
   /* --- Couleurs de marque des moyens de paiement -------------------------
      Un gerant senegalais reconnait Wave et Orange Money a leur couleur

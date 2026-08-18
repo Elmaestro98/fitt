@@ -9,7 +9,7 @@ export default function PageConnexion() {
       appearance={{
         elements: {
           formButtonPrimary:
-            "bg-[#FF6B35] hover:bg-[#E85D2A] text-white normal-case",
+            "bg-brand hover:bg-brand-hover text-white normal-case",
         },
       }}
     />
