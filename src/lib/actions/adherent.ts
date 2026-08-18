@@ -9,7 +9,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { creerAdherent, schemaNouvelAdherent } from "@/lib/data/adherent";
+import {
+  changerStatutAdherent,
+  creerAdherent,
+  schemaNouvelAdherent,
+} from "@/lib/data/adherent";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -83,4 +87,30 @@ export async function actionCreerAdherent(
   // redirect() fonctionne en levant une exception interne a Next : il doit
   // rester HORS du try/catch, sinon le catch l'intercepterait.
   redirect("/adherents");
+}
+
+/* --- Changement de statut ------------------------------------------------ */
+
+/* Les seules transitions autorisees depuis l'interface. EXPIRE n'y figure
+   pas : ce statut est pose par le systeme quand l'abonnement s'acheve, jamais
+   a la main. EN_ATTENTE_VALIDATION vient du parcours d'invitation. */
+const STATUTS_MANUELS = ["ACTIF", "SUSPENDU", "ARCHIVE"] as const;
+
+export async function actionChangerStatut(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const statut = String(formData.get("statut") ?? "");
+
+  if (!id) return;
+  // Le champ vient d'un formulaire : on n'accepte que la liste blanche.
+  if (!STATUTS_MANUELS.includes(statut as (typeof STATUTS_MANUELS)[number])) {
+    return;
+  }
+
+  await changerStatutAdherent(
+    id,
+    statut as (typeof STATUTS_MANUELS)[number],
+  );
+
+  revalidatePath("/adherents");
+  revalidatePath(`/adherents/${id}`);
 }

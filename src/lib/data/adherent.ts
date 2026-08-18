@@ -94,6 +94,34 @@ export async function trouverAdherent(id: string) {
   return prisma.adherent.findFirst({ where: { id, gymId } });
 }
 
+/* --- Changement de statut ------------------------------------------------ */
+
+/**
+ * Suspendre, reactiver ou archiver un adherent.
+ *
+ * On n'utilise PAS prisma.adherent.update() : comme findUnique, il n'accepte
+ * qu'un critere unique, donc impossible d'y ajouter gymId. Sans ce filtre,
+ * connaitre l'id d'un adherent d'une autre salle suffirait a le suspendre.
+ * updateMany accepte un where libre : le gymId y entre.
+ *
+ * count === 0 signifie soit "id inexistant", soit "id d'une autre salle".
+ * On ne distingue pas les deux : repondre "cet adherent existe mais n'est pas
+ * a vous" serait deja une fuite d'information.
+ */
+export async function changerStatutAdherent(
+  id: string,
+  statut: StatutAdherent,
+) {
+  const { gymId } = await getTenantContext();
+
+  const resultat = await prisma.adherent.updateMany({
+    where: { id, gymId },
+    data: { statut },
+  });
+
+  if (resultat.count === 0) throw new Error("Adherent introuvable");
+}
+
 /* --- Creation ------------------------------------------------------------ */
 
 export const schemaNouvelAdherent = z.object({
