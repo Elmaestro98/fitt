@@ -31,6 +31,19 @@ enum Sexe {
   FEMME
 }
 
+enum UniteDuree {
+  JOUR
+  SEMAINE
+  MOIS
+  ANNEE
+}
+
+enum StatutAbonnement {
+  ACTIF
+  EXPIRE
+  ANNULE
+}
+
 // =============================================================================
 // Gym — une salle de sport cliente. C'est le "tenant".
 // Regle n°1 du projet : toute autre table porte un gymId pointant vers celle-ci.
@@ -56,7 +69,9 @@ model Gym {
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
-  adherents Adherent[]
+  adherents   Adherent[]
+  formules    Formule[]
+  abonnements Abonnement[]
 
   @@map("gyms")
 }
@@ -112,6 +127,8 @@ model Adherent {
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
+  abonnements Abonnement[]
+
   // --- Contraintes et index (CLAUDE.md §10) ---
 
   // Deux adherents de salles DIFFERENTES peuvent avoir le meme numero de
@@ -124,4 +141,93 @@ model Adherent {
   // Tri par defaut de la liste : les derniers inscrits en premier.
   @@index([gymId, creeLe])
   @@map("adherents")
+}
+
+// =============================================================================
+// Formule — une offre commerciale de la salle : "Mensuel", "Premium Annuel"...
+//
+// Une formule EVOLUE : son prix change, sa duree aussi. C'est pour cela qu'un
+// Abonnement n'y lit jamais son prix ni sa duree en direct — il en garde une
+// copie figee (voir plus bas).
+// =============================================================================
+model Formule {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  nom         String // "Premium Annuel"
+  description String? // "Acces total + cours collectifs"
+
+  // Entier en FCFA. Jamais de decimales, jamais de flottant (§8).
+  prix Int
+
+  // "1 MOIS", "3 MOIS", "1 ANNEE", "10 JOUR"...
+  // Une unite calendaire plutot qu'un nombre de jours : "1 mois" a partir du
+  // 31 janvier doit tomber au 28 fevrier, pas au 2 mars.
+  dureeValeur Int
+  dureeUnite  UniteDuree
+
+  // Une formule utilisee ne se supprime pas, elle s'archive (§9) : sinon
+  // l'historique des abonnements devient illisible.
+  actif Boolean @default(true)
+
+  // Ordre d'affichage choisi par le gerant.
+  ordre Int @default(0)
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  abonnements Abonnement[]
+
+  @@unique([gymId, nom])
+  @@index([gymId, actif])
+  @@map("formules")
+}
+
+// =============================================================================
+// Abonnement — le contrat souscrit par un adherent, a une date donnee.
+//
+// /!\ REGLE CRITIQUE (CLAUDE.md §9)
+// nomFormule, prixPaye et finLe sont des PHOTOGRAPHIES prises a la
+// souscription. Ils ne sont JAMAIS recalcules a partir de la formule.
+// Un changement de tarif ou de duree ne doit pas reecrire retroactivement les
+// contrats en cours — c'est la comptabilite de la salle qui en depend.
+// =============================================================================
+model Abonnement {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Restrict)
+
+  // Lien conserve pour les statistiques ("combien d'Annuel vendus ?").
+  // Jamais pour lire le prix ou la duree : ceux-la sont copies ci-dessous.
+  formuleId String
+  formule   Formule @relation(fields: [formuleId], references: [id], onDelete: Restrict)
+
+  // --- Les trois valeurs figees ---
+  nomFormule String // le nom au jour de la vente
+  prixPaye   Int // le tarif au jour de la vente, en FCFA
+  finLe      DateTime // calculee UNE fois, a la souscription
+
+  debutLe DateTime
+
+  statut StatutAbonnement @default(ACTIF)
+
+  // Annulation : jamais de suppression, motif obligatoire (esprit du §9).
+  annuleLe   DateTime?
+  motifAnnul String?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  // Requete la plus frequente de l'application (§10) : "quels abonnements
+  // expirent bientot dans cette salle ?"
+  @@index([gymId, finLe])
+  @@index([gymId, adherentId])
+  @@index([gymId, statut])
+  @@map("abonnements")
 }

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   CreditCard,
+  Tag,
   Dumbbell,
   LayoutDashboard,
   Settings,
@@ -24,6 +25,7 @@ export const NAVIGATION: EntreeNavigation[] = [
   { libelle: "Tableau de bord", href: "/tableau-de-bord", icone: LayoutDashboard },
   { libelle: "Adherents", href: "/adherents", icone: Users, lot: 1 },
   { libelle: "Abonnements", href: "/abonnements", icone: CreditCard, lot: 1 },
+  { libelle: "Formules", href: "/formules", icone: Tag, lot: 1 },
   { libelle: "Paiements", href: "/paiements", icone: Wallet, lot: 1 },
   { libelle: "Pointage", href: "/pointage", icone: UserCheck, lot: 1 },
   { libelle: "Cours & coachs", href: "/cours", icone: Dumbbell, lot: 4 },

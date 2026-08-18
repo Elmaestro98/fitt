@@ -51,6 +51,15 @@ const ADHERENTS: Modele[] = [
   { prenom: "Omar", nom: "Sagna", telephone: "+221778980818", sexe: "HOMME", statut: "EXPIRE", ilYaJours: 245 },
 ];
 
+/* Tarifs indicatifs d'une salle independante au Senegal. */
+const FORMULES = [
+  { nom: "Seance", description: "Acces a la journee", prix: 2000, dureeValeur: 1, dureeUnite: "JOUR" as const, ordre: 0 },
+  { nom: "Mensuel", description: "Acces libre a la salle", prix: 15000, dureeValeur: 1, dureeUnite: "MOIS" as const, ordre: 1 },
+  { nom: "Trimestriel", description: "Acces libre + suivi mensuel", prix: 40000, dureeValeur: 3, dureeUnite: "MOIS" as const, ordre: 2 },
+  { nom: "Semestriel", description: "Acces libre + cours collectifs", prix: 70000, dureeValeur: 6, dureeUnite: "MOIS" as const, ordre: 3 },
+  { nom: "Premium Annuel", description: "Acces total + cours collectifs + coach", prix: 120000, dureeValeur: 1, dureeUnite: "ANNEE" as const, ordre: 4 },
+];
+
 function ilYa(jours: number) {
   return new Date(Date.now() - jours * 24 * 60 * 60 * 1000);
 }
@@ -68,6 +77,18 @@ async function main() {
   }
   console.log(`Salle ciblee : ${gym.nom} (${gym.id})`);
 
+  // --- Formules ---
+  const formulesExistantes = await prisma.formule.count({ where: { gymId: gym.id } });
+  if (formulesExistantes > 0) {
+    console.log(`${formulesExistantes} formules deja presentes — inchangees.`);
+  } else {
+    for (const f of FORMULES) {
+      await prisma.formule.create({ data: { gymId: gym.id, ...f } });
+    }
+    console.log(`${FORMULES.length} formules creees.`);
+  }
+
+  // --- Adherents ---
   const existants = await prisma.adherent.count({ where: { gymId: gym.id } });
   if (existants > 0) {
     console.log(`${existants} adherents deja presents — rien a faire.`);
