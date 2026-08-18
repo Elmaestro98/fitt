@@ -24,7 +24,7 @@ Le cahier des charges complet fait référence pour le fonctionnel. Ce fichier f
 | Langage | **TypeScript** | oui |
 | Base de données | PostgreSQL via Supabase | oui |
 | ORM | Prisma | oui |
-| Auth staff | Clerk + Organizations | oui |
+| Auth staff | Clerk v7 + Organizations | oui |
 | Auth adhérents | lien magique / OTP maison, **hors Clerk** | oui (voir §5) |
 | Styles | Tailwind CSS | oui |
 | Icônes | lucide-react | par défaut |
@@ -121,7 +121,14 @@ L'application, elle, garde le pooler : `PrismaPg({ connectionString: process.env
 Le mode debug écrit les URL de connexion **mot de passe en clair** dans la sortie. Si ça arrive : supprimer les logs et réinitialiser le mot de passe Supabase.
 
 **Clerk v6 + Next.js 15**
-Le middleware se nomme `src/proxy.ts`. Pas `middleware.ts`. Ne pas passer à Next.js 16 sans vérifier la compatibilité Clerk.
+En Next.js **15**, le middleware se nomme `src/middleware.ts`. Le renommage en
+`proxy.ts` n'arrive qu'avec Next.js **16** (vérifié dans le source de 15.5.23 :
+`MIDDLEWARE_LOCATION_REGEXP = (?:src/)?middleware`). Le jour du passage à Next 16 :
+renommer le fichier **et** vérifier la compatibilité Clerk avant.
+
+**Clerk v7 exige React ~19.1.4**
+`create-next-app@15` installe React 19.1.0 → `ERESOLVE` à l'installation de Clerk.
+Corriger en montant React (`react@19.1.9`), jamais avec `--force` ni `--legacy-peer-deps`.
 
 **Prisma sur Vercel**
 `prisma generate` dans le script `build`. Instance Prisma en singleton pour éviter l'épuisement du pool en dev.

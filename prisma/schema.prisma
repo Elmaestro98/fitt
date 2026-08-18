@@ -1,4 +1,4 @@
-// Schema Prisma de Fitt — la description de la base de donnees.
+  // Schema Prisma de Fitt — la description de la base de donnees.
 // Apres CHAQUE modification de ce fichier :
 //   npx prisma migrate dev --name description-du-changement
 // Doc : https://pris.ly/d/prisma-schema
