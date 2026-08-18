@@ -1,44 +1,127 @@
-  // Schema Prisma de Fitt — la description de la base de donnees.
+// Schema Prisma de Fitt — la description de la base de donnees.
 // Apres CHAQUE modification de ce fichier :
 //   npx prisma migrate dev --name description-du-changement
 // Doc : https://pris.ly/d/prisma-schema
 
-// -- Le generateur : quel code Prisma doit fabriquer a partir de ce fichier ---
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
-// -- La source de donnees : quel type de base. Les URL sont dans prisma.config.ts
 datasource db {
   provider = "postgresql"
 }
 
 // =============================================================================
+// ENUMERATIONS
+// Stockees en MAJUSCULES non traduites (CLAUDE.md §8). La traduction francaise
+// se fait a l'affichage, dans src/components/ui/badge.tsx.
+// =============================================================================
+
+enum StatutAdherent {
+  ACTIF
+  EXPIRE
+  SUSPENDU
+  EN_ATTENTE_VALIDATION
+  ARCHIVE
+}
+
+enum Sexe {
+  HOMME
+  FEMME
+}
+
+// =============================================================================
 // Gym — une salle de sport cliente. C'est le "tenant".
-// Regle n°1 du projet : toute autre table portera un gymId pointant vers celle-ci.
+// Regle n°1 du projet : toute autre table porte un gymId pointant vers celle-ci.
 // =============================================================================
 model Gym {
-  // Identifiant interne. cuid() = chaine aleatoire non devinable, ex "clx3f9a0b0000..."
-  // On evite les entiers 1, 2, 3 : trop faciles a deviner dans une URL.
   id String @id @default(cuid())
 
-  // Lien vers l'organisation Clerk. C'est la cle de voute de getTenantContext() :
-  // Clerk dit "l'utilisateur appartient a l'organisation X", on retrouve la salle ici.
+  // Lien vers l'organisation Clerk. Cle de voute de getTenantContext().
   clerkOrgId String @unique
 
-  nom       String // "Fitness Club Saint-Louis"
-  telephone String? // "+221771234567" — optionnel a la creation
+  nom       String
+  telephone String?
   adresse   String?
   ville     String? @default("Saint-Louis")
 
-  // Un client qui resilie n'est pas supprime : ses donnees restent, l'acces est coupe.
   actif Boolean @default(true)
 
-  // Horodatages automatiques, stockes en UTC (affichage Africa/Dakar cote interface).
+  // Compteur du numero d'adherent, PAR SALLE (CLAUDE.md §8).
+  // On l'incremente dans une transaction a chaque creation. Il ne redescend
+  // jamais : un numero libere n'est pas reattribue, meme apres archivage.
+  dernierNumeroAdherent Int @default(0)
+
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
-  // Nom de la table reelle en base : "gyms" plutot que "Gym".
+  adherents Adherent[]
+
   @@map("gyms")
+}
+
+// =============================================================================
+// Adherent — un client de la salle.
+//
+// Un adherent appartient a UNE seule salle (CLAUDE.md §4). Pas de compte
+// transversal, pas d'inscription publique : il est cree par le staff ou arrive
+// par lien d'invitation, et reste alors EN_ATTENTE_VALIDATION.
+//
+// Creer un adherent n'est PAS l'inviter : la salle doit rester 100 %
+// fonctionnelle sans qu'aucun adherent n'ait active son espace.
+// =============================================================================
+model Adherent {
+  id String @id @default(cuid())
+
+  // --- Le tenant. Presente sur toute table metier, sans exception (§3). ---
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  // Numero visible par le gerant, imprime sur la carte : "FITT-0042" (§8).
+  // Sequence par salle, jamais reutilisee.
+  numero String
+
+  prenom String
+  nom    String
+
+  // Stocke normalise "+221771234567" (§8). L'affichage remet les espaces.
+  telephone String
+  email     String?
+
+  dateNaissance DateTime?
+  sexe          Sexe?
+  adresse       String?
+
+  // Chemin dans Supabase Storage. Les initiales sont le cas NORMAL :
+  // une salle qui saisit 300 adherents au carnet ne mettra pas 300 photos.
+  photoUrl String?
+
+  // /!\ Donnee DENORMALISEE et assumee.
+  // EXPIRE se deduit de la table Abonnement, mais on le stocke pour pouvoir
+  // l'indexer : "montre-moi les expires" est la requete la plus frequente du
+  // gerant, et une jointure a chaque affichage serait lente.
+  // Toute ecriture sur Abonnement doit donc resynchroniser ce champ.
+  statut StatutAdherent @default(ACTIF)
+
+  // Notes libres du staff (blessure, preference d'horaire...).
+  // Aucun conseil sante ou nutrition automatique ici (§9) : Fitt enregistre,
+  // il ne conseille pas.
+  notes String?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  // --- Contraintes et index (CLAUDE.md §10) ---
+
+  // Deux adherents de salles DIFFERENTES peuvent avoir le meme numero de
+  // telephone (un couple, un parent qui inscrit son enfant). Deux adherents
+  // de la MEME salle, non : ce serait un doublon de saisie.
+  @@unique([gymId, telephone])
+  @@unique([gymId, numero])
+  // Requete la plus frequente du back-office.
+  @@index([gymId, statut])
+  // Tri par defaut de la liste : les derniers inscrits en premier.
+  @@index([gymId, creeLe])
+  @@map("adherents")
 }
