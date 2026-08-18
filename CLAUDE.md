@@ -240,17 +240,35 @@ JournalMessage · JournalAudit
 
 ## 11. Design system
 
-| Rôle | Valeur |
-|---|---|
-| Primaire | `#FF6B35` |
-| Fond sombre / sidebar | `#0F172A` |
-| Succès | `#16A34A` |
-| Alerte | `#F59E0B` |
-| Danger | `#DC2626` |
-| Texte | `#1E293B` / secondaire `#64748B` |
-| Bordures | `#E2E8F0` |
+Palette relevée au pixel sur `public/maquette.png` (tableau de bord) le 18/08/2026.
+**La maquette fait référence**, pas les valeurs théoriques d'origine : la direction
+retenue est un **gris neutre chaud**, pas un navy bleuté.
 
-Rayons 12 px. Ombres douces. Police Inter ou Poppins. Icônes en trait fin.
+| Rôle | Valeur | Usage |
+|---|---|---|
+| Primaire | `#FF6B35` | boutons, liens d'action, icône active, accents |
+| Fond sombre / sidebar | `#2D3133` | barre latérale |
+| Nav active | `#363A3C` | ligne sélectionnée, + texte et barre orange |
+| Fond de page | `#F7F9FB` | zone de contenu |
+| Surface | `#FFFFFF` | cartes, tableaux, modales |
+| Champ / surface enfoncée | `#F2F4F6` | recherche, inputs au repos |
+| Succès | `#00AF79` | variations positives, statut ACTIF |
+| Alerte | `#F59E0B` | échéance proche |
+| Danger | `#BA1A1A` | expiration dépassée, impayé |
+| Texte principal | `#191C1E` | titres, valeurs |
+| Texte secondaire | `#6B7280` | labels, en-têtes de tableau, métadonnées |
+| Bordures | `#E2E8F0` | séparateurs, contours de cartes |
+
+Badges de formule (fond clair, texte foncé de la même famille) :
+`Mensuel` `#DAE2FD` · `Annuel` `#E0E3E5` · une teinte par formule.
+
+Rayons 12 px. Ombres très douces (la maquette privilégie la bordure fine à l'ombre
+portée). Police Inter. Icônes en trait fin (lucide-react).
+
+**Vocabulaire d'interface** — le menu de la maquette dit « Membres » et « Présences » :
+utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visible reste
+`FITT-0042` (§8), pas le `#MEM-4092` de la maquette.
+
 **Mobile-first strict** : le back-office est utilisé sur téléphone à l'accueil. Cibles tactiles ≥ 44 px, utilisable à une main, testé à partir de 360 px de large.
 
 ---
