@@ -12,6 +12,7 @@ import { z } from "zod";
 import {
   changerStatutAdherent,
   creerAdherent,
+  modifierAdherent,
   schemaNouvelAdherent,
 } from "@/lib/data/adherent";
 
@@ -87,6 +88,49 @@ export async function actionCreerAdherent(
   // redirect() fonctionne en levant une exception interne a Next : il doit
   // rester HORS du try/catch, sinon le catch l'intercepterait.
   redirect("/adherents");
+}
+
+/* --- Modification -------------------------------------------------------- */
+
+/**
+ * L'id arrive en PREMIER argument, pas dans un champ cache du formulaire.
+ * La page appelle :  actionModifierAdherent.bind(null, adherent.id)
+ *
+ * .bind() fige la valeur cote serveur : elle n'est jamais serialisee dans le
+ * HTML, donc l'utilisateur ne peut pas la remplacer par l'id d'un autre
+ * adherent depuis les outils du navigateur. Le filtre gymId de
+ * modifierAdherent reste la deuxieme protection.
+ */
+export async function actionModifierAdherent(
+  id: string,
+  _precedent: EtatFormulaire,
+  formData: FormData,
+): Promise<EtatFormulaire> {
+  const resultat = schemaNouvelAdherent.safeParse(nettoyer(formData));
+
+  if (!resultat.success) {
+    return { erreurs: z.flattenError(resultat.error).fieldErrors };
+  }
+
+  try {
+    await modifierAdherent(id, resultat.data);
+  } catch (erreur) {
+    if (estDoublon(erreur)) {
+      return {
+        erreurs: {
+          telephone: ["Un autre adherent de cette salle utilise deja ce numero."],
+        },
+      };
+    }
+    return {
+      message: "La modification a echoue. Verifiez votre connexion et reessayez.",
+    };
+  }
+
+  revalidatePath("/adherents");
+  revalidatePath(`/adherents/${id}`);
+
+  redirect(`/adherents/${id}`);
 }
 
 /* --- Changement de statut ------------------------------------------------ */

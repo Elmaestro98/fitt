@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { FormulaireAdherent } from "@/components/adherents/formulaire-adherent";
+import { actionCreerAdherent } from "@/lib/actions/adherent";
 
 export const metadata = { title: "Nouvel adherent — Fitt" };
 
@@ -21,7 +22,11 @@ export default function PageNouvelAdherent() {
         sousTitre="Seuls le prenom, le nom et le telephone sont obligatoires."
       />
 
-      <FormulaireAdherent />
+      <FormulaireAdherent
+        action={actionCreerAdherent}
+        libelleSoumission="Enregistrer l'adherent"
+        hrefAnnuler="/adherents"
+      />
     </div>
   );
 }

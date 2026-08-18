@@ -14,24 +14,52 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/form";
-import {
-  actionCreerAdherent,
-  type EtatFormulaire,
-} from "@/lib/actions/adherent";
+import type { EtatFormulaire } from "@/lib/actions/adherent";
+import { formaterTelephone } from "@/lib/utils/telephone";
 
 const ETAT_INITIAL: EtatFormulaire = {};
 
-export function FormulaireAdherent() {
+/* Valeurs pre-remplies en mode modification. Toutes facultatives : en
+   creation, on n'en passe aucune. */
+export type ValeursAdherent = {
+  prenom: string;
+  nom: string;
+  telephone: string;
+  email: string | null;
+  adresse: string | null;
+  sexe: string | null;
+  dateNaissance: Date | null;
+  notes: string | null;
+};
+
+type Props = {
+  /** Server Action, deja liee a l'id en mode modification. */
+  action: (etat: EtatFormulaire, formData: FormData) => Promise<EtatFormulaire>;
+  valeurs?: ValeursAdherent;
+  libelleSoumission: string;
+  hrefAnnuler: string;
+};
+
+/** Une date -> "AAAA-MM-JJ", format attendu par <input type="date">. */
+function pourInputDate(date: Date | null) {
+  if (!date) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+export function FormulaireAdherent({
+  action: actionServeur,
+  valeurs,
+  libelleSoumission,
+  hrefAnnuler,
+}: Props) {
   // useActionState (React 19) relie le <form> a la Server Action :
   //   etat      -> ce que l'action a renvoye (erreurs, message)
   //   action    -> a passer a <form action={...}>
   //   enCours   -> true pendant l'aller-retour serveur
-  const [etat, action, enCours] = useActionState(
-    actionCreerAdherent,
-    ETAT_INITIAL,
-  );
+  const [etat, action, enCours] = useActionState(actionServeur, ETAT_INITIAL);
 
   const e = etat.erreurs;
+  const v = valeurs;
 
   return (
     <form action={action} className="space-y-5">
@@ -47,6 +75,7 @@ export function FormulaireAdherent() {
                 id="prenom"
                 name="prenom"
                 required
+                defaultValue={v?.prenom}
                 autoComplete="given-name"
                 placeholder="Moussa"
                 invalide={Boolean(e?.prenom)}
@@ -58,6 +87,7 @@ export function FormulaireAdherent() {
                 id="nom"
                 name="nom"
                 required
+                defaultValue={v?.nom}
                 autoComplete="family-name"
                 placeholder="Diop"
                 invalide={Boolean(e?.nom)}
@@ -67,7 +97,7 @@ export function FormulaireAdherent() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label="Sexe" htmlFor="sexe" erreurs={e?.sexe}>
-              <Select id="sexe" name="sexe" defaultValue="">
+              <Select id="sexe" name="sexe" defaultValue={v?.sexe ?? ""}>
                 <option value="">Non precise</option>
                 <option value="HOMME">Homme</option>
                 <option value="FEMME">Femme</option>
@@ -79,7 +109,12 @@ export function FormulaireAdherent() {
               htmlFor="dateNaissance"
               erreurs={e?.dateNaissance}
             >
-              <Input id="dateNaissance" name="dateNaissance" type="date" />
+              <Input
+                id="dateNaissance"
+                name="dateNaissance"
+                type="date"
+                defaultValue={pourInputDate(v?.dateNaissance ?? null)}
+              />
             </Champ>
           </div>
         </CardBody>
@@ -100,6 +135,7 @@ export function FormulaireAdherent() {
               id="telephone"
               name="telephone"
               required
+              defaultValue={v ? formaterTelephone(v.telephone) : undefined}
               type="tel"
               inputMode="tel"
               autoComplete="tel"
@@ -112,6 +148,7 @@ export function FormulaireAdherent() {
             <Input
               id="email"
               name="email"
+              defaultValue={v?.email ?? ""}
               type="email"
               autoComplete="email"
               placeholder="moussa.diop@example.com"
@@ -123,6 +160,7 @@ export function FormulaireAdherent() {
             <Input
               id="adresse"
               name="adresse"
+              defaultValue={v?.adresse ?? ""}
               placeholder="Quartier Sor, Saint-Louis"
             />
           </Champ>
@@ -141,6 +179,7 @@ export function FormulaireAdherent() {
             <Textarea
               id="notes"
               name="notes"
+              defaultValue={v?.notes ?? ""}
               placeholder="Prefere les creneaux du matin."
             />
           </Champ>
@@ -148,22 +187,24 @@ export function FormulaireAdherent() {
       </Card>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Link href="/adherents">
+        <Link href={hrefAnnuler}>
           <Button type="button" variante="contour" className="w-full sm:w-auto">
             Annuler
           </Button>
         </Link>
         <Button type="submit" disabled={enCours} className="w-full sm:w-auto">
           {enCours && <Loader2 className="size-4 animate-spin" />}
-          {enCours ? "Enregistrement..." : "Enregistrer l'adherent"}
+          {enCours ? "Enregistrement..." : libelleSoumission}
         </Button>
       </div>
 
-      <p className="text-xs text-muted">
-        Le numero d&apos;adherent (FITT-0000) est attribue automatiquement.
-        Enregistrer un adherent ne l&apos;invite pas : son espace mobile reste
-        facultatif.
-      </p>
+      {!v && (
+        <p className="text-xs text-muted">
+          Le numero d&apos;adherent (FITT-0000) est attribue automatiquement.
+          Enregistrer un adherent ne l&apos;invite pas : son espace mobile
+          reste facultatif.
+        </p>
+      )}
     </form>
   );
 }

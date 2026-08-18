@@ -94,6 +94,39 @@ export async function trouverAdherent(id: string) {
   return prisma.adherent.findFirst({ where: { id, gymId } });
 }
 
+/* --- Modification -------------------------------------------------------- */
+
+/**
+ * Met a jour les informations d'un adherent.
+ *
+ * updateMany et non update, pour la meme raison que partout ailleurs : update
+ * n'accepte qu'un critere unique, donc pas de gymId. Sans ce filtre, connaitre
+ * l'id d'un adherent d'une autre salle suffirait a reecrire sa fiche.
+ *
+ * Le numero et le statut ne sont PAS modifiables ici :
+ *  - le numero est fige a la creation (§8, jamais reattribue) ;
+ *  - le statut passe par changerStatutAdherent, qui a sa propre liste blanche.
+ */
+export async function modifierAdherent(id: string, donnees: NouvelAdherent) {
+  const { gymId } = await getTenantContext();
+
+  const resultat = await prisma.adherent.updateMany({
+    where: { id, gymId },
+    data: {
+      prenom: donnees.prenom,
+      nom: donnees.nom,
+      telephone: donnees.telephone!,
+      email: donnees.email || null,
+      sexe: donnees.sexe ?? null,
+      dateNaissance: donnees.dateNaissance ?? null,
+      adresse: donnees.adresse || null,
+      notes: donnees.notes || null,
+    },
+  });
+
+  if (resultat.count === 0) throw new Error("Adherent introuvable");
+}
+
 /* --- Changement de statut ------------------------------------------------ */
 
 /**

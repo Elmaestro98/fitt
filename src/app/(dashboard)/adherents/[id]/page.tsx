@@ -61,10 +61,12 @@ export default async function PageFicheAdherent({
         titre="Fiche adherent"
         sousTitre={adherent.numero}
         action={
-          <Button variante="contour" disabled>
-            <Pencil className="size-4" />
-            Modifier
-          </Button>
+          <Link href={`/adherents/${adherent.id}/modifier`}>
+            <Button variante="contour">
+              <Pencil className="size-4" />
+              Modifier
+            </Button>
+          </Link>
         }
       />
 
