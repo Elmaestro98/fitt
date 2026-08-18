@@ -1,0 +1,44 @@
+// Schema Prisma de Fitt — la description de la base de donnees.
+// Apres CHAQUE modification de ce fichier :
+//   npx prisma migrate dev --name description-du-changement
+// Doc : https://pris.ly/d/prisma-schema
+
+// -- Le generateur : quel code Prisma doit fabriquer a partir de ce fichier ---
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// -- La source de donnees : quel type de base. Les URL sont dans prisma.config.ts
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// Gym — une salle de sport cliente. C'est le "tenant".
+// Regle n°1 du projet : toute autre table portera un gymId pointant vers celle-ci.
+// =============================================================================
+model Gym {
+  // Identifiant interne. cuid() = chaine aleatoire non devinable, ex "clx3f9a0b0000..."
+  // On evite les entiers 1, 2, 3 : trop faciles a deviner dans une URL.
+  id String @id @default(cuid())
+
+  // Lien vers l'organisation Clerk. C'est la cle de voute de getTenantContext() :
+  // Clerk dit "l'utilisateur appartient a l'organisation X", on retrouve la salle ici.
+  clerkOrgId String @unique
+
+  nom       String // "Fitness Club Saint-Louis"
+  telephone String? // "+221771234567" — optionnel a la creation
+  adresse   String?
+  ville     String? @default("Saint-Louis")
+
+  // Un client qui resilie n'est pas supprime : ses donnees restent, l'acces est coupe.
+  actif Boolean @default(true)
+
+  // Horodatages automatiques, stockes en UTC (affichage Africa/Dakar cote interface).
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  // Nom de la table reelle en base : "gyms" plutot que "Gym".
+  @@map("gyms")
+}

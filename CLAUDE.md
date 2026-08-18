@@ -104,6 +104,22 @@ DIRECT_URL="postgresql://...@...supabase.com:5432/postgres"
 ```
 Le pooler port **6543** avec `?pgbouncer=true` pour l'application, le port **5432** en `DIRECT_URL` pour les migrations. Sans ça : erreur en production sur Vercel.
 
+**Prisma 7 : la CLI doit pointer sur DIRECT_URL, pas sur le pooler**
+En Prisma 7 les URL vivent dans `prisma.config.ts`, plus dans `schema.prisma`.
+Le bloc `datasource` de ce fichier ne sert **qu'à la CLI** (migrate, db pull,
+studio) : y mettre `url: env("DIRECT_URL")`. Le pooler pgbouncer ne maintient
+pas le verrou consultatif du moteur de migration → `prisma migrate` **se fige
+indéfiniment, sans aucun message d'erreur**. Symptôme : la bannière affiche
+`Datasource "db": ... at ...:6543` puis plus rien.
+Diagnostic rapide :
+```bash
+node_modules/@prisma/engines/schema-engine-windows.exe --datasource '{"url":"<URL>"}' cli can-connect-to-database
+```
+L'application, elle, garde le pooler : `PrismaPg({ connectionString: process.env.DATABASE_URL })`.
+
+**Ne jamais lancer Prisma avec `DEBUG=prisma*`**
+Le mode debug écrit les URL de connexion **mot de passe en clair** dans la sortie. Si ça arrive : supprimer les logs et réinitialiser le mot de passe Supabase.
+
 **Clerk v6 + Next.js 15**
 Le middleware se nomme `src/proxy.ts`. Pas `middleware.ts`. Ne pas passer à Next.js 16 sans vérifier la compatibilité Clerk.
 

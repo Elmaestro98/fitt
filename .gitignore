@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# prisma : miroirs de la doc Prisma (liens symboliques vers .agents/skills)
+/.claude/skills
+/.windsurf/skills
