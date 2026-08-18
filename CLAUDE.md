@@ -133,6 +133,14 @@ Corriger en montant React (`react@19.1.9`), jamais avec `--force` ni `--legacy-p
 **Prisma sur Vercel**
 `prisma generate` dans le script `build`. Instance Prisma en singleton pour éviter l'épuisement du pool en dev.
 
+**Le singleton Prisma survit au rechargement à chaud — y compris quand il ne devrait pas**
+Après une migration, `prisma.<nouveauModele>` est `undefined` alors que TypeScript
+compile sans erreur : l'instance rangée dans `globalThis` a été construite à partir
+de l'ancien client généré et survit à tous les rechargements.
+**Après tout `prisma migrate` ou `prisma generate` : redémarrer `npm run dev`.**
+Le script `predev` regénère le client au démarrage, mais ne peut rien pour un
+serveur déjà lancé.
+
 **Hydratation**
 Tout store client (Zustand) lu au premier rendu provoque une erreur d'hydratation. Pattern : `useState(false)` + `useEffect(() => setMounted(true))`.
 
