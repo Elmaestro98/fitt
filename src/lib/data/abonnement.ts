@@ -281,6 +281,7 @@ export async function listerAbonnements({
             prenom: true,
             nom: true,
             numero: true,
+            telephone: true,
             photoUrl: true,
           },
         },

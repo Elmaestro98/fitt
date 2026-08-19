@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { CalendarClock, Plus, RefreshCw } from "lucide-react";
+import { CalendarClock, Plus, RefreshCw, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { BoutonAnnuler } from "@/components/abonnements/bouton-annuler";
 import { formatFCFA, formatDateLongue } from "@/lib/utils/format";
 import { joursRestants } from "@/lib/utils/duree";
+import {
+  lienWhatsApp,
+  messageRelanceAbonnement,
+  SEUIL_RELANCE_JOURS,
+} from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils/cn";
 
 type Abonnement = {
@@ -18,9 +23,15 @@ type Abonnement = {
 
 export function CarteAbonnement({
   adherentId,
+  prenomAdherent,
+  telephoneAdherent,
+  nomSalle,
   abonnement,
 }: {
   adherentId: string;
+  prenomAdherent: string;
+  telephoneAdherent: string;
+  nomSalle: string;
   abonnement: Abonnement | null;
 }) {
   if (!abonnement) {
@@ -70,6 +81,27 @@ export function CarteAbonnement({
         icone={<CalendarClock className="size-4 text-brand" />}
         action={
           <div className="flex items-center gap-2">
+            {restants <= SEUIL_RELANCE_JOURS && (
+              <a
+                href={lienWhatsApp(
+                  telephoneAdherent,
+                  messageRelanceAbonnement(
+                    prenomAdherent,
+                    abonnement.nomFormule,
+                    nomSalle,
+                    abonnement.finLe,
+                    restants <= 0,
+                  ),
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variante="whatsapp" taille="sm">
+                  <Send className="size-4" />
+                  Rappel WhatsApp
+                </Button>
+              </a>
+            )}
             <BoutonAnnuler
               abonnementId={abonnement.id}
               adherentId={adherentId}

@@ -308,10 +308,15 @@ utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visi
   - [x] Paiements — journal de caisse, filtres, statistiques, écriture de contrepartie
   - [x] Pointage — borne kiosque, code du jour, file locale résistante aux coupures réseau (§9)
   - [x] Tableau de bord, paramètres
-- [ ] Lot 2 — notifications WhatsApp, relances, import CSV, impayés
+- [~] Lot 2 — notifications WhatsApp, relances, import CSV, impayés :
+  - [x] Import CSV — analyse/apercu puis confirmation, valide le 19/08/2026
+  - [x] Relances impayés — bouton "Rappel WhatsApp" (lien wa.me, message pre-rempli) sur la liste des abonnements et sur la fiche adherent, des 7 jours avant echeance et sur les abonnements expires. Valide le 19/08/2026
+  - [ ] Notifications WhatsApp automatiques — **en pause le 19/08/2026** : verification Meta Business, templates approuves, webhook et cout par message sont un chantier lourd pour un gain marginal face au bouton "Rappel WhatsApp" deja en place. A reprendre si une salle cliente le demande explicitement.
 - [x] Lot 3 — espace adhérent : code-complet et **validé par test le 19/08/2026** (activation par lien, connexion, accueil, séances, abonnements, profil, pointage) — construit en avance sur le Lot 2
 - [ ] Lot 4 — cours et coachs
-- [ ] Lot 5 — rapports et back-office Super Admin
+- [~] Lot 5 — rapports et back-office Super Admin :
+  - [x] Rapports (`/rapports`) — encaissements reels par mois, repartition par methode de paiement, taux de renouvellement (delai de grace 14 j), top adherents assidus, filtre de periode (3/6/12/24 mois) et export CSV (`/api/rapports/export`, premiere route API du projet — GET, hors Server Actions car un telechargement a besoin d'un en-tete Content-Disposition). Valide le 19/08/2026
+  - [ ] Back-office Super Admin (vue AFRICATECHNOLOGIE sur l'ensemble des salles clientes) — non commence
 - [ ] Lot 6 — paiements en ligne Wave / Orange Money
 
 Le **Lot 1 est le seuil de commercialisation** : une salle doit pouvoir abandonner son carnet à la fin de ce lot. Le code y est, mais aucun parcours n'a encore été rejoué de bout en bout dans le navigateur — c'est la prochaine étape avant de considérer le seuil franchi.

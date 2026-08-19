@@ -20,6 +20,7 @@ import {
   listerAbonnementsAdherent,
   synchroniserExpirations,
 } from "@/lib/data/abonnement";
+import { parametresSalle } from "@/lib/data/gym";
 import { CarteAbonnement } from "@/components/abonnements/carte-abonnement";
 import { HistoriqueAbonnements } from "@/components/abonnements/historique-abonnements";
 import { CartePaiements } from "@/components/paiements/carte-paiements";
@@ -59,12 +60,13 @@ export default async function PageFicheAdherent({
   const adherent = await trouverAdherent(id);
   if (!adherent) notFound();
 
-  const [actuel, historique, paiements, presences, espace] = await Promise.all([
+  const [actuel, historique, paiements, presences, espace, gym] = await Promise.all([
     abonnementActuel(id),
     listerAbonnementsAdherent(id),
     paiementsAdherent(id),
     pointagesAdherent(id),
     etatEspaceAdherent(id),
+    parametresSalle(),
   ]);
 
   // Le solde depend de l'abonnement en cours : on ne peut le demander qu'une
@@ -123,7 +125,13 @@ export default async function PageFicheAdherent({
         </div>
 
         <div className="space-y-5 lg:col-span-2">
-          <CarteAbonnement adherentId={adherent.id} abonnement={actuel} />
+          <CarteAbonnement
+            adherentId={adherent.id}
+            prenomAdherent={adherent.prenom}
+            telephoneAdherent={adherent.telephone}
+            nomSalle={gym.nom}
+            abonnement={actuel}
+          />
 
           <HistoriqueAbonnements abonnements={historique} />
 

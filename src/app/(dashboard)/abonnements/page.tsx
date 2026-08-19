@@ -20,6 +20,7 @@ import {
   VUES,
   type VueAbonnements,
 } from "@/lib/data/abonnement";
+import { parametresSalle } from "@/lib/data/gym";
 import { formatFCFA } from "@/lib/utils/format";
 
 export const metadata = { title: "Abonnements — Fitt" };
@@ -49,9 +50,10 @@ export default async function PageAbonnements({
   // Lot 2 : deplacer dans une tache planifiee quotidienne.
   await synchroniserExpirations();
 
-  const [{ abonnements, total, pages }, stats] = await Promise.all([
+  const [{ abonnements, total, pages }, stats, gym] = await Promise.all([
     listerAbonnements({ page, recherche, vue }),
     statistiquesAbonnements(),
+    parametresSalle(),
   ]);
 
   const hrefPour = (p: number) => {
@@ -112,7 +114,7 @@ export default async function PageAbonnements({
           )
         ) : (
           <>
-            <TableAbonnements lignes={abonnements} />
+            <TableAbonnements lignes={abonnements} nomSalle={gym.nom} />
             <Pagination
               page={page}
               pages={pages}

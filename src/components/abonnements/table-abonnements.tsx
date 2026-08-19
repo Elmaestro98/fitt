@@ -1,11 +1,19 @@
 // Tableau de la liste globale des abonnements. Server Component : seule la
-// colonne d'action embarque du JavaScript (le bouton d'annulation).
+// colonne d'action embarque du JavaScript (le bouton d'annulation) — le
+// rappel WhatsApp est un simple lien <a>, pas de JS necessaire pour lui.
 import Link from "next/link";
+import { Send } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BoutonAnnuler } from "@/components/abonnements/bouton-annuler";
 import { formatDate, formatFCFA } from "@/lib/utils/format";
 import { joursRestants } from "@/lib/utils/duree";
+import {
+  lienWhatsApp,
+  messageRelanceAbonnement,
+  SEUIL_RELANCE_JOURS,
+} from "@/lib/utils/whatsapp";
 
 type LigneAbonnement = {
   id: string;
@@ -20,6 +28,7 @@ type LigneAbonnement = {
     prenom: string;
     nom: string;
     numero: string;
+    telephone: string;
     photoUrl: string | null;
   };
 };
@@ -30,7 +39,13 @@ const STATUTS = {
   ANNULE: { libelle: "Annule", ton: "danger" },
 } as const;
 
-export function TableAbonnements({ lignes }: { lignes: LigneAbonnement[] }) {
+export function TableAbonnements({
+  lignes,
+  nomSalle,
+}: {
+  lignes: LigneAbonnement[];
+  nomSalle: string;
+}) {
   return (
     // Le tableau deborde horizontalement sur telephone plutot que d'ecraser
     // les colonnes : a 360 px, six colonnes compressees sont illisibles.
@@ -44,13 +59,21 @@ export function TableAbonnements({ lignes }: { lignes: LigneAbonnement[] }) {
             <Th>Echeance</Th>
             <Th>Montant</Th>
             <Th>Statut</Th>
-            <th className="w-28" />
+            <th className="w-40" />
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
           {lignes.map((a) => {
             const nomComplet = `${a.adherent.prenom} ${a.adherent.nom}`;
             const { libelle, ton } = STATUTS[a.statut as keyof typeof STATUTS];
+
+            // Relance proposee sur un abonnement bientot echu (encore ACTIF,
+            // echeance proche) ou deja echu (EXPIRE) — jamais sur un
+            // abonnement annule, ni sur un contrat qui vient d'etre souscrit.
+            const restants = joursRestants(a.finLe);
+            const proposerRelance =
+              (a.statut === "ACTIF" && restants <= SEUIL_RELANCE_JOURS) ||
+              a.statut === "EXPIRE";
 
             return (
               <tr key={a.id} className="transition-colors hover:bg-canvas">
@@ -100,17 +123,40 @@ export function TableAbonnements({ lignes }: { lignes: LigneAbonnement[] }) {
                   <Badge ton={ton}>{libelle}</Badge>
                 </td>
 
-                <td className="px-5 py-3 text-right">
-                  {/* Seul un abonnement en cours peut etre annule : un contrat
-                      deja termine n'a plus rien a annuler. */}
-                  {a.statut === "ACTIF" && (
-                    <BoutonAnnuler
-                      abonnementId={a.id}
-                      adherentId={a.adherent.id}
-                      nomFormule={a.nomFormule}
-                      nomAdherent={nomComplet}
-                    />
-                  )}
+                <td className="px-5 py-3">
+                  <div className="flex flex-col items-end gap-1.5">
+                    {proposerRelance && (
+                      <a
+                        href={lienWhatsApp(
+                          a.adherent.telephone,
+                          messageRelanceAbonnement(
+                            a.adherent.prenom,
+                            a.nomFormule,
+                            nomSalle,
+                            a.finLe,
+                            a.statut === "EXPIRE",
+                          ),
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variante="whatsapp" taille="sm">
+                          <Send className="size-4" />
+                          Rappel
+                        </Button>
+                      </a>
+                    )}
+                    {/* Seul un abonnement en cours peut etre annule : un
+                        contrat deja termine n'a plus rien a annuler. */}
+                    {a.statut === "ACTIF" && (
+                      <BoutonAnnuler
+                        abonnementId={a.id}
+                        adherentId={a.adherent.id}
+                        nomFormule={a.nomFormule}
+                        nomAdherent={nomComplet}
+                      />
+                    )}
+                  </div>
                 </td>
               </tr>
             );

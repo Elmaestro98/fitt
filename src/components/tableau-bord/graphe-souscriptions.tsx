@@ -11,10 +11,6 @@ import {
   type ChartConfig,
 } from "@/components/shadcn/chart";
 
-const config = {
-  montant: { label: "Souscrit", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
-
 /** 250 000 -> "250 k" — un axe lisible sur telephone. */
 function abrege(valeur: number) {
   if (valeur >= 1_000_000) return `${Math.round(valeur / 100_000) / 10} M`;
@@ -24,9 +20,17 @@ function abrege(valeur: number) {
 
 export function GrapheSouscriptions({
   donnees,
+  libelleSerie = "Souscrit",
 }: {
   donnees: { libelle: string; montant: number }[];
+  /** "Souscrit" (tableau de bord) ou "Encaisse" (rapports) : meme graphe,
+      deux realites financieres differentes (voir lib/data/rapport.ts). */
+  libelleSerie?: string;
 }) {
+  const config = {
+    montant: { label: libelleSerie, color: "var(--color-chart-1)" },
+  } satisfies ChartConfig;
+
   return (
     <ChartContainer config={config} className="h-56 w-full">
       <AreaChart data={donnees} margin={{ left: 4, right: 8, top: 8 }}>
