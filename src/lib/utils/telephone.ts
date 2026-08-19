@@ -42,3 +42,36 @@ export function formaterTelephone(stocke: string): string {
   if (!NEUF_CHIFFRES.test(n)) return stocke; // donnee inattendue : on n'invente rien
   return `${INDICATIF} ${n.slice(0, 2)} ${n.slice(2, 5)} ${n.slice(5, 7)} ${n.slice(7, 9)}`;
 }
+
+/** Un fixe senegalais : 9 chiffres commencant par 3 (33 pour Dakar, 
+ *  30/32/34/etc. en region). */
+const FIXE = /^3\d{8}$/;
+
+/**
+ * Meme normalisation, mais pour le numero d'une SALLE : elle accepte aussi
+ * les lignes fixes.
+ *
+ * Pourquoi une fonction separee plutot qu'un assouplissement de
+ * normaliserTelephone : celle-ci garantit l'unicite (gymId, telephone) des
+ * adherents, dont le mobile sert aussi aux rappels WhatsApp. Y laisser entrer
+ * un fixe ferait echouer silencieusement les notifications du Lot 2.
+ *
+ *   "33 823 45 67" -> "+221338234567"
+ *   "77 123 45 67" -> "+221771234567"
+ */
+export function normaliserTelephoneSalle(saisie: string): string | null {
+  let chiffres = saisie.replace(/\D/g, "");
+
+  if (chiffres.startsWith("00221")) chiffres = chiffres.slice(5);
+  else if (chiffres.startsWith("221")) chiffres = chiffres.slice(3);
+
+  if (!NEUF_CHIFFRES.test(chiffres) && !FIXE.test(chiffres)) return null;
+  return INDICATIF + chiffres;
+}
+
+/** Affichage d'un numero de salle : accepte fixe comme mobile. */
+export function formaterTelephoneSalle(stocke: string): string {
+  const n = stocke.replace(/\D/g, "").replace(/^221/, "");
+  if (!NEUF_CHIFFRES.test(n) && !FIXE.test(n)) return stocke;
+  return `${INDICATIF} ${n.slice(0, 2)} ${n.slice(2, 5)} ${n.slice(5, 7)} ${n.slice(7, 9)}`;
+}

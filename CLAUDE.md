@@ -141,6 +141,19 @@ de l'ancien client généré et survit à tous les rechargements.
 Le script `predev` regénère le client au démarrage, mais ne peut rien pour un
 serveur déjà lancé.
 
+**Migration SQL manuelle : attention à la shadow database**
+Une migration écrite à la main (`prisma migrate dev --create-only`) est d'abord
+rejouée sur une **base fantôme** vide, créée puis détruite à chaque migration.
+Toute instruction qui suppose l'existence d'un objet créé *hors* des migrations
+y échoue. Rencontré le 18/08/2026 : `ALTER TABLE "_prisma_migrations" ENABLE ROW
+LEVEL SECURITY` → `42P01 relation does not exist`, alors que la table existe
+évidemment en base réelle. L'échec a lieu sur la fantôme : la vraie base n'est
+pas touchée, et `migrate resolve --rolled-back` répond alors `P3011`, ce qui est
+normal — il n'y a rien à annuler.
+Un fichier de migration **déjà appliqué ne doit plus être modifié** : Prisma en
+vérifie l'empreinte et signalerait une dérive. Corriger dans une migration
+suivante.
+
 **Hydratation**
 Tout store client (Zustand) lu au premier rendu provoque une erreur d'hydratation. Pattern : `useState(false)` + `useEffect(() => setMounted(true))`.
 
@@ -286,7 +299,7 @@ utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visi
 - [x] Cahier des charges v1.0
 - [x] Maquettes Stitch : tableau de bord, liste adhérents, fiche adhérent, modale paiement, pointage kiosque, landing
 - [ ] Maquettes : invitation d'adhérents, import CSV, formules, création adhérent
-- [ ] Lot 0 — socle technique, tenant, RLS, design system
+- [x] Lot 0 — socle technique, tenant, RLS, design system
 - [ ] Lot 1 — MVP vendable (adhérents, invitations, formules, abonnements, paiements, pointage, tableau de bord)
 - [ ] Lot 2 — notifications WhatsApp, relances, import CSV, impayés
 - [ ] Lot 3 — espace adhérent

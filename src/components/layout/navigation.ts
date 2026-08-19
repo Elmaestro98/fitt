@@ -37,5 +37,5 @@ export const NAVIGATION: EntreeNavigation[] = [
 ];
 
 export const NAVIGATION_BASSE: EntreeNavigation[] = [
-  { libelle: "Parametres", href: "/parametres", icone: Settings, lot: 1 },
+  { libelle: "Parametres", href: "/parametres", icone: Settings },
 ];

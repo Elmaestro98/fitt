@@ -1,18 +1,19 @@
 // Fiche adherent. Structure reprise de public/fichemembre.png : colonne
 // d'identite a gauche, abonnement / paiements / presences a droite.
 //
-// Abonnement, paiements et presences sont branches sur leurs vraies tables.
-// Seul le code d'acces reste un emplacement annonce : il attend la generation
-// des QR codes. Aucune carte n'est remplie de fausses donnees.
+// Toutes les cartes sont branchees sur leurs vraies tables : abonnement,
+// paiements, presences, et l'acces a l'espace adherent. Aucune n'est remplie
+// de fausses donnees.
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Pencil, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { CarteAVenir } from "@/components/ui/carte-a-venir";
 import { PageHeader } from "@/components/layout/page-header";
 import { CarteIdentite } from "@/components/adherents/carte-identite";
 import { ActionsStatut } from "@/components/adherents/actions-statut";
+import { CarteEspace } from "@/components/adherents/carte-espace";
+import { etatEspaceAdherent } from "@/lib/data/espace-adherent";
 import { trouverAdherent } from "@/lib/data/adherent";
 import {
   abonnementActuel,
@@ -58,11 +59,12 @@ export default async function PageFicheAdherent({
   const adherent = await trouverAdherent(id);
   if (!adherent) notFound();
 
-  const [actuel, historique, paiements, presences] = await Promise.all([
+  const [actuel, historique, paiements, presences, espace] = await Promise.all([
     abonnementActuel(id),
     listerAbonnementsAdherent(id),
     paiementsAdherent(id),
     pointagesAdherent(id),
+    etatEspaceAdherent(id),
   ]);
 
   // Le solde depend de l'abonnement en cours : on ne peut le demander qu'une
@@ -108,11 +110,15 @@ export default async function PageFicheAdherent({
             </CardBody>
           </Card>
 
-          <CarteAVenir
-            titre="Code d'acces"
-            lot={1}
-            hauteur="h-36"
-            description="Le QR code de l'adherent arrivera avec le pointage. Il sera genere par la salle, sans que l'adherent ait a activer son espace."
+          <CarteEspace
+            adherentId={adherent.id}
+            etat={espace}
+            // Un adherent en attente de validation n'a pas d'espace (§4), un
+            // archive n'en a plus.
+            invitable={
+              adherent.statut !== "EN_ATTENTE_VALIDATION" &&
+              adherent.statut !== "ARCHIVE"
+            }
           />
         </div>
 

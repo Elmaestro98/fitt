@@ -7,11 +7,13 @@ import { CalendarCheck, TriangleAlert, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/tableau-bord/stat-card";
 import { Kiosque } from "@/components/pointage/kiosque";
+import { CarteCodeSeance } from "@/components/pointage/carte-code-seance";
 import {
   adherentsPourKiosque,
   derniersPassages,
   statistiquesPointage,
 } from "@/lib/data/pointage";
+import { codeSeanceDuJour } from "@/lib/data/gym";
 import { synchroniserExpirations } from "@/lib/data/abonnement";
 
 export const metadata = { title: "Pointage — Fitt" };
@@ -22,10 +24,13 @@ export default async function PagePointage() {
   // Lot 2 : deplacer dans une tache planifiee quotidienne.
   await synchroniserExpirations();
 
-  const [adherents, passages, stats] = await Promise.all([
+  const [adherents, passages, stats, code] = await Promise.all([
     adherentsPourKiosque(),
     derniersPassages(),
     statistiquesPointage(),
+    // Genere le code du jour s'il n'existe pas encore : c'est l'ouverture de
+    // cette page, le matin, qui le fait exister.
+    codeSeanceDuJour(),
   ]);
 
   return (
@@ -59,6 +64,8 @@ export default async function PagePointage() {
       </div>
 
       <Kiosque adherents={adherents} passagesInitiaux={passages} />
+
+      <CarteCodeSeance codeInitial={code} />
 
       <p className="text-xs text-muted">
         Les passages sont enregistres meme sans connexion : ils partent

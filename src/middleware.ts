@@ -19,6 +19,15 @@ const estRoutePublique = createRouteMatcher([
   // La page est publique, mais pas ouverte : sans un jeton valide de
   // 32 octets, elle n'affiche rien d'autre qu'un message d'erreur.
   "/rejoindre(.*)",
+  // Espace adherent (§5). "Public" ici veut dire "hors Clerk", PAS "ouvert" :
+  // aucun adherent n'a de compte Clerk, et ne doit jamais en avoir un (§9).
+  // Ces routes ont leur propre controle d'acces, exigerSessionAdherent(),
+  // appele en premiere ligne de chaque page — le pendant exact de
+  // getTenantContext() cote back-office.
+  //   /activer/<jeton> : consommation du lien d'invitation
+  //   /espace(...)     : l'espace lui-meme
+  "/activer(.*)",
+  "/espace(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

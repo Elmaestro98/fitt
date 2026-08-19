@@ -52,8 +52,9 @@ enum MethodePaiement {
 
 // Comment le passage a ete saisi. Sert aux rapports, jamais a la logique.
 enum SourcePointage {
-  KIOSQUE // borne a l'entree, en libre service
-  STAFF   // saisi par la reception
+  KIOSQUE  // borne a l'entree, en libre service
+  STAFF    // saisi par la reception
+  ADHERENT // depuis l'espace adherent, avec le code du jour affiche a l'accueil
 }
 
 // ENCAISSEMENT : de l'argent entre, montant positif.
@@ -85,6 +86,19 @@ model Gym {
   // jamais : un numero libere n'est pas reattribue, meme apres archivage.
   dernierNumeroAdherent Int @default(0)
 
+  // Code de seance du jour, affiche en grand sur la borne d'accueil.
+  //
+  // /!\ C'est LA preuve de presence physique de l'auto-pointage : sans lui,
+  // un adherent pointerait depuis son lit et le registre de la salle ne
+  // vaudrait plus rien. Quatre chiffres, regenere chaque jour, jamais
+  // communique en dehors des murs.
+  //
+  // Ce n'est pas un secret cryptographique et il n'a pas a l'etre : il ne
+  // donne acces a aucune donnee, il atteste seulement qu'on a vu l'ecran de
+  // l'accueil. D'ou le stockage en clair, contrairement aux jetons (§9).
+  codePointage   String?
+  codePointageLe DateTime? // le jour ou ce code a ete tire
+
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
@@ -94,6 +108,8 @@ model Gym {
   paiements   Paiement[]
   pointages   Pointage[]
   liens       LienInscription[]
+  invitations Invitation[]
+  sessions    SessionAdherent[]
 
   @@map("gyms")
 }
@@ -158,6 +174,8 @@ model Adherent {
   abonnements Abonnement[]
   paiements   Paiement[]
   pointages   Pointage[]
+  invitations Invitation[]
+  sessions    SessionAdherent[]
 
   // --- Contraintes et index (CLAUDE.md §10) ---
 
@@ -424,4 +442,77 @@ model LienInscription {
 
   @@index([gymId, creeLe])
   @@map("liens_inscription")
+}
+
+// =============================================================================
+// Invitation — le lien d'activation de l'espace adherent (CLAUDE.md §10).
+//
+// A ne pas confondre avec LienInscription :
+//   LienInscription : anonyme, partageable, CREE une fiche a valider ;
+//   Invitation      : nominative, rattachee a un adherent DEJA existant,
+//                     et ouvre l'acces a son espace personnel.
+//
+// /!\ Memes regles que tout jeton du projet (§4, §9) : 32 octets aleatoires,
+// stockes HACHES en SHA-256, usage unique, 7 jours, revocables.
+//
+// Lot 2 : l'envoi passera par WhatsApp. Aujourd'hui le staff copie le lien et
+// le transmet lui-meme — le modele n'a pas a changer pour autant.
+// =============================================================================
+model Invitation {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Cascade)
+
+  jetonHache String @unique
+
+  expireLe  DateTime
+  // Usage unique (§4) : une fois consomme, le lien ne vaut plus rien.
+  utiliseLe DateTime?
+  revoqueLe DateTime?
+
+  creeParUserId String?
+  creeLe        DateTime @default(now())
+
+  @@index([gymId, adherentId])
+  @@map("invitations")
+}
+
+// =============================================================================
+// SessionAdherent — la session de l'espace adherent.
+//
+// /!\ Aucun compte Clerk n'est cree pour un adherent (§5, §9) : Clerk facture
+// au MAU, et 6 000 adherents feraient exploser le cout. La session est donc
+// maison — un jeton dans un cookie httpOnly, dont la base ne connait que
+// l'empreinte.
+//
+// 90 jours (§5) : un adherent ne retiendra pas un mot de passe, et ne doit pas
+// avoir a redemander un acces a chaque visite.
+// =============================================================================
+model SessionAdherent {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Cascade)
+
+  // SHA-256 du jeton depose dans le cookie. Voler la base ne donne acces a
+  // aucune session.
+  jetonHache String @unique
+
+  expireLe  DateTime
+  revoqueLe DateTime?
+
+  // Permet au staff de voir si l'espace est reellement utilise, et de fermer
+  // les sessions dormantes.
+  dernierAccesLe DateTime @default(now())
+  creeLe         DateTime @default(now())
+
+  @@index([gymId, adherentId])
+  @@map("sessions_adherent")
 }
