@@ -160,6 +160,20 @@ Tout store client (Zustand) lu au premier rendu provoque une erreur d'hydratatio
 **TypeScript 6 incompatible avec Next.js 15**
 `npm i -D typescript` installe la 6.x, qui rejette `import "./globals.css"` (erreur TS2882 : *Cannot find module or type declarations for side-effect import*). Next 15 ne déclare que `*.module.css`. Rester en `typescript@^5`.
 
+**Supabase Storage — bucket et variables d'environnement**
+Bucket `photos-adherents`, **public** (une photo de profil n'est pas une
+donnée sensible ; sans bucket public, `next/image` ne peut pas l'afficher).
+Deux variables, dans `.env` **et** `.env.local`, sans préfixe `NEXT_PUBLIC_`
+(la clé `service_role` ne doit jamais atteindre le navigateur — tout
+téléversement passe par une Server Action, jamais par un appel direct
+client → Supabase) :
+```env
+SUPABASE_URL=https://xxxxxxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+`next.config.mjs` doit lister `*.supabase.co` dans `images.remotePatterns`,
+sinon `next/image` refuse de charger l'URL publique renvoyée par Storage.
+
 ---
 
 ## 7. Conventions de code

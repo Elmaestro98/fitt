@@ -5,8 +5,8 @@
 // Rempli par l'adherent lui-meme, sur son telephone, sans compte. Il ne cree
 // PAS un acces (§4, §5) : il depose une demande que la salle validera.
 // L'ecran le dit, pour que personne ne reparte en croyant etre inscrit.
-import { useActionState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useActionState, useState } from "react";
+import { CheckCircle2, Loader2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input, Select } from "@/components/ui/form";
@@ -14,6 +14,56 @@ import {
   actionPreinscription,
   type EtatPreinscription,
 } from "@/lib/actions/invitation";
+
+/**
+ * Selecteur de photo avec apercu immediat : quelqu'un qui envoie une photo
+ * de profil pour la premiere fois veut voir ce qu'il envoie avant de valider,
+ * surtout depuis l'appareil photo d'un telephone (cadrage, luminosite).
+ */
+function ChampPhoto({ erreurs }: { erreurs?: string[] }) {
+  const [apercu, setApercu] = useState<string | null>(null);
+
+  return (
+    <Champ
+      label="Photo de profil"
+      htmlFor="photo"
+      requis
+      erreurs={erreurs}
+      aide="Pour que l'equipe de la salle vous reconnaisse a l'accueil."
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sunken text-muted">
+          {apercu ? (
+            // Apercu local avant envoi : une image <img> ordinaire suffit,
+            // next/image n'optimise pas une blob: URL.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={apercu} alt="" className="size-full object-cover" />
+          ) : (
+            <UserRound className="size-6" aria-hidden="true" />
+          )}
+        </span>
+
+        <input
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="user"
+          required
+          aria-invalid={Boolean(erreurs?.length) || undefined}
+          onChange={(e) => {
+            const fichier = e.target.files?.[0];
+            setApercu((precedent) => {
+              if (precedent) URL.revokeObjectURL(precedent);
+              return fichier ? URL.createObjectURL(fichier) : null;
+            });
+          }}
+          className="block flex-1 text-sm text-ink file:mr-3 file:h-10 file:rounded-control file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-ink hover:file:bg-sunken"
+        />
+      </div>
+    </Champ>
+  );
+}
 
 export function FormulairePreinscription({
   jeton,
@@ -60,6 +110,8 @@ export function FormulairePreinscription({
         <CardBody className="pt-5">
           <form action={action} className="space-y-4">
             {etat.message && <AlerteFormulaire>{etat.message}</AlerteFormulaire>}
+
+            <ChampPhoto erreurs={e?.photo} />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Champ label="Prenom" htmlFor="prenom" requis erreurs={e?.prenom}>

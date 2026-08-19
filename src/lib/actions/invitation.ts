@@ -11,7 +11,12 @@ import {
   schemaNouveauLien,
   schemaPreinscription,
   TelephoneDejaInscritError,
+  verifierJeton,
 } from "@/lib/data/invitation";
+import {
+  PhotoInvalideError,
+  televerserPhotoAdherent,
+} from "@/lib/data/stockage";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -111,8 +116,14 @@ export type EtatPreinscription = EtatFormulaire & {
  * Envoi du formulaire public de pre-inscription.
  *
  * Le jeton arrive par .bind cote serveur, depuis le segment d'URL. Aucun
- * gymId ne transite par le formulaire (§9) : inscrireViaLien le deduit du
- * jeton, dans la transaction.
+ * gymId ne transite par le formulaire (§9) : il est deduit du jeton, ici pour
+ * nommer le fichier de la photo, et a nouveau par inscrireViaLien pour la
+ * creation en base — la meme verification se refait dans sa transaction, au
+ * cas ou le lien serait devenu invalide entre les deux appels.
+ *
+ * La photo est obligatoire et televersee AVANT la creation de la fiche : un
+ * echec d'envoi (reseau, format) doit bloquer l'inscription plutot que
+ * laisser une fiche sans photo se glisser en base.
  */
 export async function actionPreinscription(
   jeton: string,
@@ -124,8 +135,31 @@ export async function actionPreinscription(
     return { erreurs: z.flattenError(resultat.error).fieldErrors };
   }
 
+  const photo = formData.get("photo");
+  if (!(photo instanceof File) || photo.size === 0) {
+    return { erreurs: { photo: ["Ajoutez une photo de profil."] } };
+  }
+
+  const etatLien = await verifierJeton(jeton);
+  if (!etatLien.valide) {
+    return {
+      lienMort: true,
+      message: "Ce lien n'est plus utilisable. Demandez-en un nouveau a la salle.",
+    };
+  }
+
+  let photoUrl: string;
   try {
-    const adherent = await inscrireViaLien(jeton, resultat.data);
+    photoUrl = await televerserPhotoAdherent(etatLien.gymId, photo);
+  } catch (erreur) {
+    if (erreur instanceof PhotoInvalideError) {
+      return { erreurs: { photo: [erreur.message] } };
+    }
+    return { message: "L'envoi a echoue. Verifiez votre connexion et reessayez." };
+  }
+
+  try {
+    const adherent = await inscrireViaLien(jeton, resultat.data, photoUrl);
 
     // La salle voit arriver la demande immediatement.
     revalidatePath("/adherents");

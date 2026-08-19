@@ -193,6 +193,9 @@ export class LienInvalideError extends Error {
 export async function inscrireViaLien(
   jetonClair: string,
   donnees: DonneesPreinscription,
+  // L'URL est deja connue ici : la photo est televersee AVANT cet appel
+  // (§7 — pas d'appel reseau externe a l'interieur d'une transaction Prisma).
+  photoUrl: string,
 ) {
   const empreinte = hacherJeton(jetonClair);
 
@@ -248,6 +251,7 @@ export async function inscrireViaLien(
         email: donnees.email || null,
         sexe: donnees.sexe ?? null,
         dateNaissance: donnees.dateNaissance ?? null,
+        photoUrl,
         // Le point central du §4 : c'est une demande, pas un adherent.
         statut: "EN_ATTENTE_VALIDATION",
         lienInscriptionId: lien.id,
