@@ -21,43 +21,274 @@ type Modele = {
 };
 
 const ADHERENTS: Modele[] = [
-  { prenom: "Moussa", nom: "Diop", telephone: "+221771234567", sexe: "HOMME", statut: "ACTIF", ilYaJours: 2 },
-  { prenom: "Awa", nom: "Ndiaye", telephone: "+221772345678", sexe: "FEMME", statut: "ACTIF", ilYaJours: 5 },
-  { prenom: "Ousmane", nom: "Fall", telephone: "+221773456789", sexe: "HOMME", statut: "EXPIRE", ilYaJours: 9 },
-  { prenom: "Fatou", nom: "Sow", telephone: "+221774567890", sexe: "FEMME", statut: "ACTIF", ilYaJours: 14 },
-  { prenom: "Ibrahima", nom: "Sy", telephone: "+221775678901", sexe: "HOMME", statut: "SUSPENDU", ilYaJours: 21 },
-  { prenom: "Seydou", nom: "Faye", telephone: "+221776789012", sexe: "HOMME", statut: "ACTIF", ilYaJours: 28 },
-  { prenom: "Mariama", nom: "Ba", telephone: "+221777890123", sexe: "FEMME", statut: "ACTIF", ilYaJours: 33 },
-  { prenom: "Cheikh", nom: "Gueye", telephone: "+221778901234", sexe: "HOMME", statut: "EXPIRE", ilYaJours: 40 },
-  { prenom: "Aminata", nom: "Diallo", telephone: "+221779012345", sexe: "FEMME", statut: "ACTIF", ilYaJours: 47 },
-  { prenom: "Modou", nom: "Kane", telephone: "+221770123456", sexe: "HOMME", statut: "ACTIF", ilYaJours: 55 },
-  { prenom: "Khady", nom: "Seck", telephone: "+221771112233", sexe: "FEMME", statut: "ARCHIVE", ilYaJours: 62 },
-  { prenom: "Alioune", nom: "Badara", telephone: "+221772223344", sexe: "HOMME", statut: "ACTIF", ilYaJours: 70 },
-  { prenom: "Ndeye", nom: "Toure", telephone: "+221773334455", sexe: "FEMME", statut: "EXPIRE", ilYaJours: 78 },
-  { prenom: "Babacar", nom: "Mbaye", telephone: "+221774445566", sexe: "HOMME", statut: "ACTIF", ilYaJours: 86 },
-  { prenom: "Sokhna", nom: "Ndour", telephone: "+221775556677", sexe: "FEMME", statut: "ACTIF", ilYaJours: 95 },
-  { prenom: "Lamine", nom: "Camara", telephone: "+221776667788", sexe: "HOMME", statut: "ACTIF", ilYaJours: 104 },
-  { prenom: "Adama", nom: "Cisse", telephone: "+221777778899", sexe: "FEMME", statut: "SUSPENDU", ilYaJours: 112 },
-  { prenom: "Pape", nom: "Sarr", telephone: "+221778889900", sexe: "HOMME", statut: "ACTIF", ilYaJours: 120 },
-  { prenom: "Rokhaya", nom: "Diagne", telephone: "+221779990011", sexe: "FEMME", statut: "ACTIF", ilYaJours: 130 },
-  { prenom: "Serigne", nom: "Thiam", telephone: "+221770001122", sexe: "HOMME", statut: "EXPIRE", ilYaJours: 141 },
-  { prenom: "Bineta", nom: "Diouf", telephone: "+221771213141", sexe: "FEMME", statut: "ACTIF", ilYaJours: 150 },
-  { prenom: "Malick", nom: "Ba", telephone: "+221772324252", sexe: "HOMME", statut: "ACTIF", ilYaJours: 160 },
-  { prenom: "Coumba", nom: "Lo", telephone: "+221773435363", sexe: "FEMME", statut: "ACTIF", ilYaJours: 172 },
-  { prenom: "Assane", nom: "Ndao", telephone: "+221774546474", sexe: "HOMME", statut: "ACTIF", ilYaJours: 185 },
-  { prenom: "Yacine", nom: "Diaw", telephone: "+221775657585", sexe: "FEMME", statut: "ARCHIVE", ilYaJours: 200 },
-  { prenom: "Samba", nom: "Wade", telephone: "+221776768696", sexe: "HOMME", statut: "ACTIF", ilYaJours: 215 },
-  { prenom: "Dieynaba", nom: "Ka", telephone: "+221777879707", sexe: "FEMME", statut: "ACTIF", ilYaJours: 230 },
-  { prenom: "Omar", nom: "Sagna", telephone: "+221778980818", sexe: "HOMME", statut: "EXPIRE", ilYaJours: 245 },
+  {
+    prenom: "Moussa",
+    nom: "Diop",
+    telephone: "+221771234567",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 2,
+  },
+  {
+    prenom: "Awa",
+    nom: "Ndiaye",
+    telephone: "+221772345678",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 5,
+  },
+  {
+    prenom: "Ousmane",
+    nom: "Fall",
+    telephone: "+221773456789",
+    sexe: "HOMME",
+    statut: "EXPIRE",
+    ilYaJours: 9,
+  },
+  {
+    prenom: "Fatou",
+    nom: "Sow",
+    telephone: "+221774567890",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 14,
+  },
+  {
+    prenom: "Ibrahima",
+    nom: "Sy",
+    telephone: "+221775678901",
+    sexe: "HOMME",
+    statut: "SUSPENDU",
+    ilYaJours: 21,
+  },
+  {
+    prenom: "Seydou",
+    nom: "Faye",
+    telephone: "+221776789012",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 28,
+  },
+  {
+    prenom: "Mariama",
+    nom: "Ba",
+    telephone: "+221777890123",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 33,
+  },
+  {
+    prenom: "Cheikh",
+    nom: "Gueye",
+    telephone: "+221778901234",
+    sexe: "HOMME",
+    statut: "EXPIRE",
+    ilYaJours: 40,
+  },
+  {
+    prenom: "Aminata",
+    nom: "Diallo",
+    telephone: "+221779012345",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 47,
+  },
+  {
+    prenom: "Modou",
+    nom: "Kane",
+    telephone: "+221770123456",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 55,
+  },
+  {
+    prenom: "Khady",
+    nom: "Seck",
+    telephone: "+221771112233",
+    sexe: "FEMME",
+    statut: "ARCHIVE",
+    ilYaJours: 62,
+  },
+  {
+    prenom: "Alioune",
+    nom: "Badara",
+    telephone: "+221772223344",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 70,
+  },
+  {
+    prenom: "Ndeye",
+    nom: "Toure",
+    telephone: "+221773334455",
+    sexe: "FEMME",
+    statut: "EXPIRE",
+    ilYaJours: 78,
+  },
+  {
+    prenom: "Babacar",
+    nom: "Mbaye",
+    telephone: "+221774445566",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 86,
+  },
+  {
+    prenom: "Sokhna",
+    nom: "Ndour",
+    telephone: "+221775556677",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 95,
+  },
+  {
+    prenom: "Lamine",
+    nom: "Camara",
+    telephone: "+221776667788",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 104,
+  },
+  {
+    prenom: "Adama",
+    nom: "Cisse",
+    telephone: "+221777778899",
+    sexe: "FEMME",
+    statut: "SUSPENDU",
+    ilYaJours: 112,
+  },
+  {
+    prenom: "Pape",
+    nom: "Sarr",
+    telephone: "+221778889900",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 120,
+  },
+  {
+    prenom: "Rokhaya",
+    nom: "Diagne",
+    telephone: "+221779990011",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 130,
+  },
+  {
+    prenom: "Serigne",
+    nom: "Thiam",
+    telephone: "+221770001122",
+    sexe: "HOMME",
+    statut: "EXPIRE",
+    ilYaJours: 141,
+  },
+  {
+    prenom: "Bineta",
+    nom: "Diouf",
+    telephone: "+221771213141",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 150,
+  },
+  {
+    prenom: "Malick",
+    nom: "Ba",
+    telephone: "+221772324252",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 160,
+  },
+  {
+    prenom: "Coumba",
+    nom: "Lo",
+    telephone: "+221773435363",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 172,
+  },
+  {
+    prenom: "Assane",
+    nom: "Ndao",
+    telephone: "+221774546474",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 185,
+  },
+  {
+    prenom: "Yacine",
+    nom: "Diaw",
+    telephone: "+221775657585",
+    sexe: "FEMME",
+    statut: "ARCHIVE",
+    ilYaJours: 200,
+  },
+  {
+    prenom: "Samba",
+    nom: "Wade",
+    telephone: "+221776768696",
+    sexe: "HOMME",
+    statut: "ACTIF",
+    ilYaJours: 215,
+  },
+  {
+    prenom: "Dieynaba",
+    nom: "Ka",
+    telephone: "+221777879707",
+    sexe: "FEMME",
+    statut: "ACTIF",
+    ilYaJours: 230,
+  },
+  {
+    prenom: "Omar",
+    nom: "Sagna",
+    telephone: "+221778980818",
+    sexe: "HOMME",
+    statut: "EXPIRE",
+    ilYaJours: 245,
+  },
 ];
 
 /* Tarifs indicatifs d'une salle independante au Senegal. */
 const FORMULES = [
-  { nom: "Seance", description: "Acces a la journee", prix: 2000, dureeValeur: 1, dureeUnite: "JOUR" as const, ordre: 0 },
-  { nom: "Mensuel", description: "Acces libre a la salle", prix: 15000, dureeValeur: 1, dureeUnite: "MOIS" as const, ordre: 1 },
-  { nom: "Trimestriel", description: "Acces libre + suivi mensuel", prix: 40000, dureeValeur: 3, dureeUnite: "MOIS" as const, ordre: 2 },
-  { nom: "Semestriel", description: "Acces libre + cours collectifs", prix: 70000, dureeValeur: 6, dureeUnite: "MOIS" as const, ordre: 3 },
-  { nom: "Premium Annuel", description: "Acces total + cours collectifs + coach", prix: 120000, dureeValeur: 1, dureeUnite: "ANNEE" as const, ordre: 4 },
+  {
+    nom: "Seance",
+    description: "Acces a la journee",
+    prix: 2000,
+    dureeValeur: 1,
+    dureeUnite: "JOUR" as const,
+    ordre: 0,
+  },
+  {
+    nom: "Mensuel",
+    description: "Acces libre a la salle",
+    prix: 15000,
+    dureeValeur: 1,
+    dureeUnite: "MOIS" as const,
+    ordre: 1,
+  },
+  {
+    nom: "Trimestriel",
+    description: "Acces libre + suivi mensuel",
+    prix: 40000,
+    dureeValeur: 3,
+    dureeUnite: "MOIS" as const,
+    ordre: 2,
+  },
+  {
+    nom: "Semestriel",
+    description: "Acces libre + cours collectifs",
+    prix: 70000,
+    dureeValeur: 6,
+    dureeUnite: "MOIS" as const,
+    ordre: 3,
+  },
+  {
+    nom: "Premium Annuel",
+    description: "Acces total + cours collectifs + coach",
+    prix: 120000,
+    dureeValeur: 1,
+    dureeUnite: "ANNEE" as const,
+    ordre: 4,
+  },
 ];
 
 function ilYa(jours: number) {
@@ -78,7 +309,9 @@ async function main() {
   console.log(`Salle ciblee : ${gym.nom} (${gym.id})`);
 
   // --- Formules ---
-  const formulesExistantes = await prisma.formule.count({ where: { gymId: gym.id } });
+  const formulesExistantes = await prisma.formule.count({
+    where: { gymId: gym.id },
+  });
   if (formulesExistantes > 0) {
     console.log(`${formulesExistantes} formules deja presentes — inchangees.`);
   } else {
@@ -119,7 +352,9 @@ async function main() {
     data: { dernierNumeroAdherent: sequence },
   });
 
-  console.log(`${ADHERENTS.length} adherents crees. Dernier numero : ${numero(sequence)}`);
+  console.log(
+    `${ADHERENTS.length} adherents crees. Dernier numero : ${numero(sequence)}`,
+  );
 
   await creerAbonnements(gym.id);
 }
@@ -151,7 +386,9 @@ async function creerAbonnements(gymId: string) {
     const expire = adherent.statut === "EXPIRE";
 
     // Un expire s'est termine il y a 5 a 60 jours ; un actif court encore.
-    const joursAvantFin = expire ? -(5 + (i % 55)) : ECHEANCES[i % ECHEANCES.length];
+    const joursAvantFin = expire
+      ? -(5 + (i % 55))
+      : ECHEANCES[i % ECHEANCES.length];
     const finLe = ilYa(-joursAvantFin);
 
     // On remonte le debut a partir de la fin, pour que la jauge ait du sens.

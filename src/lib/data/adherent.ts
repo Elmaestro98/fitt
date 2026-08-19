@@ -203,3 +203,70 @@ export async function creerAdherent(donnees: NouvelAdherent) {
     });
   });
 }
+
+/* --- Import CSV ------------------------------------------------------------
+   Bascule d'une salle depuis son carnet papier/Excel : creer 200-400 fiches
+   une par une n'est pas realiste. L'import passe par les DEUX memes barrieres
+   que la creation manuelle (schemaNouvelAdherent, tenant resolu serveur) —
+   ce n'est pas une voie parallele avec ses propres regles. */
+
+/**
+ * Parmi une liste de telephones normalises, ceux deja utilises dans la
+ * salle. Sert a l'apercu d'import : on n'ecrase jamais une fiche existante
+ * (§9), donc un doublon est ecarte plutot que fusionne.
+ */
+export async function telephonesExistants(
+  telephones: string[],
+): Promise<Set<string>> {
+  const { gymId } = await getTenantContext();
+  if (telephones.length === 0) return new Set();
+
+  const lignes = await prisma.adherent.findMany({
+    where: { gymId, telephone: { in: telephones } },
+    select: { telephone: true },
+  });
+  return new Set(lignes.map((l) => l.telephone));
+}
+
+/**
+ * Cree plusieurs adherents en une seule transaction, avec une numerotation
+ * FITT-XXXX sequentielle (§8) — meme garantie que creerAdherent (le verrou
+ * de la transaction empeche deux imports simultanes de se chevaucher), mais
+ * l'increment se fait en un seul coup pour tout le lot.
+ *
+ * skipDuplicates protege contre une re-soumission du meme fichier (double
+ * clic, page rechargee) : le numero reserve pour une ligne ignoree n'est
+ * simplement pas reattribue, conformement au §8.
+ */
+export async function importerAdherents(lignes: NouvelAdherent[]) {
+  const { gymId } = await getTenantContext();
+  if (lignes.length === 0) return { creees: 0 };
+
+  return prisma.$transaction(async (tx) => {
+    const gym = await tx.gym.update({
+      where: { id: gymId },
+      data: { dernierNumeroAdherent: { increment: lignes.length } },
+      select: { dernierNumeroAdherent: true },
+    });
+
+    const premierNumero = gym.dernierNumeroAdherent - lignes.length + 1;
+
+    const resultat = await tx.adherent.createMany({
+      data: lignes.map((donnees, index) => ({
+        gymId,
+        numero: formatNumeroAdherent(premierNumero + index),
+        prenom: donnees.prenom,
+        nom: donnees.nom,
+        telephone: donnees.telephone!,
+        email: donnees.email || null,
+        sexe: donnees.sexe ?? null,
+        dateNaissance: donnees.dateNaissance ?? null,
+        adresse: donnees.adresse || null,
+        notes: donnees.notes || null,
+      })),
+      skipDuplicates: true,
+    });
+
+    return { creees: resultat.count };
+  });
+}

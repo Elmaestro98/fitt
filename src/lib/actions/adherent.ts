@@ -12,9 +12,13 @@ import { z } from "zod";
 import {
   changerStatutAdherent,
   creerAdherent,
+  importerAdherents,
   modifierAdherent,
   schemaNouvelAdherent,
+  telephonesExistants,
+  type NouvelAdherent,
 } from "@/lib/data/adherent";
+import { parserCSV, type LigneCSV } from "@/lib/utils/csv";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -157,4 +161,181 @@ export async function actionChangerStatut(formData: FormData) {
 
   revalidatePath("/adherents");
   revalidatePath(`/adherents/${id}`);
+}
+
+/* --- Import CSV ------------------------------------------------------------
+   Deux etapes, deux actions : actionApercuImportCSV ne persiste RIEN, elle
+   se contente de parser et valider pour montrer au staff ce qui serait
+   importe. C'est actionConfirmerImportCSV, appelee sur un second formulaire,
+   qui ecrit reellement en base — apres une revalidation complete, jamais sur
+   la seule confiance du champ cache qui transporte les lignes validees. */
+
+export type LigneImportOk = { ligne: number; identifiant: string; donnees: NouvelAdherent };
+export type LigneImportErreur = { ligne: number; identifiant: string; erreurs: string[] };
+
+export type EtatImport = {
+  message?: string;
+  apercu?: {
+    valides: LigneImportOk[];
+    erreurs: LigneImportErreur[];
+    doublonsEnBase: number;
+  };
+};
+
+/* Alias acceptes pour chaque colonne, entetes deja normalisees (minuscules,
+   sans accents) par parserCSV. Un gerant qui exporte depuis Excel n'a pas a
+   connaitre nos noms de champs internes. */
+const ALIAS_ENTETES: Record<string, string[]> = {
+  prenom: ["prenom", "first name", "firstname"],
+  nom: ["nom", "nom de famille", "last name", "lastname"],
+  telephone: ["telephone", "tel", "phone", "numero", "numero de telephone", "num tel"],
+  email: ["email", "e-mail", "mail"],
+  sexe: ["sexe", "genre"],
+  dateNaissance: ["date de naissance", "naissance", "date naissance", "ddn"],
+  adresse: ["adresse", "address"],
+};
+
+function trouverValeur(ligne: LigneCSV, cles: string[]): string {
+  for (const cle of cles) {
+    if (ligne[cle] !== undefined && ligne[cle] !== "") return ligne[cle];
+  }
+  return "";
+}
+
+/** "H" / "Homme" / "M" -> "HOMME" ; laisse tel quel si non reconnu, pour que
+    Zod produise un message d'erreur clair plutot qu'un silence. */
+function normaliserSexe(v: string): string {
+  const s = v.trim().toLowerCase();
+  if (["h", "homme", "m", "masculin"].includes(s)) return "HOMME";
+  if (["f", "femme", "feminin"].includes(s)) return "FEMME";
+  return v;
+}
+
+/** "18/08/1990" -> "1990-08-18" : format europeen tel qu'Excel FR l'ecrit,
+    que z.coerce.date() ne saurait pas lire correctement tel quel. */
+function normaliserDateFR(v: string): string {
+  const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return v.trim();
+  const [, j, mo, a] = m;
+  return `${a}-${mo.padStart(2, "0")}-${j.padStart(2, "0")}`;
+}
+
+const MAX_LIGNES_IMPORT = 1000;
+
+export async function actionApercuImportCSV(
+  _precedent: EtatImport,
+  formData: FormData,
+): Promise<EtatImport> {
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { message: "Choisissez un fichier CSV a importer." };
+  }
+
+  const texte = await fichier.text();
+  const lignesCSV = parserCSV(texte);
+
+  if (lignesCSV.length === 0) {
+    return { message: "Le fichier est vide ou illisible." };
+  }
+  if (lignesCSV.length > MAX_LIGNES_IMPORT) {
+    return {
+      message: `Ce fichier contient plus de ${MAX_LIGNES_IMPORT} lignes. Scindez-le en plusieurs imports.`,
+    };
+  }
+
+  const valides: LigneImportOk[] = [];
+  const erreurs: LigneImportErreur[] = [];
+  const telephonesVus = new Set<string>();
+
+  for (const [index, ligneCSV] of lignesCSV.entries()) {
+    // +1 pour l'entete, +1 pour repasser en numerotation a partir de 1.
+    const numeroLigne = index + 2;
+
+    const brut: Record<string, string> = {
+      prenom: trouverValeur(ligneCSV, ALIAS_ENTETES.prenom),
+      nom: trouverValeur(ligneCSV, ALIAS_ENTETES.nom),
+      telephone: trouverValeur(ligneCSV, ALIAS_ENTETES.telephone),
+      email: trouverValeur(ligneCSV, ALIAS_ENTETES.email),
+      sexe: normaliserSexe(trouverValeur(ligneCSV, ALIAS_ENTETES.sexe)),
+      dateNaissance: normaliserDateFR(trouverValeur(ligneCSV, ALIAS_ENTETES.dateNaissance)),
+      adresse: trouverValeur(ligneCSV, ALIAS_ENTETES.adresse),
+    };
+
+    const identifiant = `${brut.prenom} ${brut.nom}`.trim() || `ligne ${numeroLigne}`;
+
+    // Meme barriere Zod que la creation manuelle (§7) : un import n'est pas
+    // une voie parallele avec ses propres regles de validation.
+    const resultat = schemaNouvelAdherent.safeParse(
+      Object.fromEntries(Object.entries(brut).filter(([, v]) => v !== "")),
+    );
+
+    if (!resultat.success) {
+      erreurs.push({
+        ligne: numeroLigne,
+        identifiant,
+        erreurs: Object.values(z.flattenError(resultat.error).fieldErrors)
+          .flat()
+          .filter((m): m is string => Boolean(m)),
+      });
+      continue;
+    }
+
+    const telephone = resultat.data.telephone!;
+    if (telephonesVus.has(telephone)) {
+      erreurs.push({
+        ligne: numeroLigne,
+        identifiant,
+        erreurs: ["Telephone en double dans le fichier."],
+      });
+      continue;
+    }
+    telephonesVus.add(telephone);
+
+    valides.push({ ligne: numeroLigne, identifiant, donnees: resultat.data });
+  }
+
+  // On n'ecrase jamais une fiche existante depuis un import (§9 : jamais de
+  // suppression/reecriture silencieuse) — un telephone deja connu de la
+  // salle est simplement ecarte, pas fusionne.
+  const existants = await telephonesExistants(
+    valides.map((v) => v.donnees.telephone!),
+  );
+  const aImporter = valides.filter((v) => !existants.has(v.donnees.telephone!));
+  const doublonsEnBase = valides.length - aImporter.length;
+
+  if (aImporter.length === 0 && erreurs.length === 0) {
+    return { message: "Aucune ligne exploitable dans ce fichier." };
+  }
+
+  return { apercu: { valides: aImporter, erreurs, doublonsEnBase } };
+}
+
+export async function actionConfirmerImportCSV(
+  _precedent: EtatImport,
+  formData: FormData,
+): Promise<EtatImport> {
+  const brut = formData.get("lignes");
+  if (typeof brut !== "string") {
+    return { message: "Session d'import expiree, recommencez depuis le fichier." };
+  }
+
+  let donnees: unknown;
+  try {
+    donnees = JSON.parse(brut);
+  } catch {
+    return { message: "Donnees d'import illisibles, recommencez depuis le fichier." };
+  }
+
+  // Le champ cache vient du navigateur : jamais de confiance aveugle, meme
+  // s'il n'a fait qu'aller-retour depuis notre propre apercu quelques
+  // secondes plus tot. Revalidation complete, ligne par ligne (§7).
+  const resultat = z.array(schemaNouvelAdherent).safeParse(donnees);
+  if (!resultat.success) {
+    return { message: "Donnees d'import invalides, recommencez depuis le fichier." };
+  }
+
+  await importerAdherents(resultat.data);
+
+  revalidatePath("/adherents");
+  redirect("/adherents");
 }

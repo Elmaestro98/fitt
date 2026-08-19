@@ -300,14 +300,21 @@ utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visi
 - [x] Maquettes Stitch : tableau de bord, liste adhérents, fiche adhérent, modale paiement, pointage kiosque, landing
 - [ ] Maquettes : invitation d'adhérents, import CSV, formules, création adhérent
 - [x] Lot 0 — socle technique, tenant, RLS, design system
-- [ ] Lot 1 — MVP vendable (adhérents, invitations, formules, abonnements, paiements, pointage, tableau de bord)
+- [x] Lot 1 — MVP vendable, **validé par un test bout en bout le 19/08/2026** (créer un adhérent → vendre un abonnement → encaisser → pointer) :
+  - [x] Adhérents — liste paginée, fiche, création, modification, changement de statut
+  - [x] Invitations (lien d'inscription + invitation nominative à l'espace adhérent)
+  - [x] Formules — liste, création, modification, archivage
+  - [x] Abonnements — souscription avec photographie figée du prix/durée (§9)
+  - [x] Paiements — journal de caisse, filtres, statistiques, écriture de contrepartie
+  - [x] Pointage — borne kiosque, code du jour, file locale résistante aux coupures réseau (§9)
+  - [x] Tableau de bord, paramètres
 - [ ] Lot 2 — notifications WhatsApp, relances, import CSV, impayés
-- [ ] Lot 3 — espace adhérent
+- [x] Lot 3 — espace adhérent : code-complet et **validé par test le 19/08/2026** (activation par lien, connexion, accueil, séances, abonnements, profil, pointage) — construit en avance sur le Lot 2
 - [ ] Lot 4 — cours et coachs
 - [ ] Lot 5 — rapports et back-office Super Admin
 - [ ] Lot 6 — paiements en ligne Wave / Orange Money
 
-Le **Lot 1 est le seuil de commercialisation** : une salle doit pouvoir abandonner son carnet à la fin de ce lot.
+Le **Lot 1 est le seuil de commercialisation** : une salle doit pouvoir abandonner son carnet à la fin de ce lot. Le code y est, mais aucun parcours n'a encore été rejoué de bout en bout dans le navigateur — c'est la prochaine étape avant de considérer le seuil franchi.
 
 ---
 

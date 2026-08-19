@@ -2,7 +2,7 @@
 // PostgreSQL, aucune donnee de filtrage ne transite par le navigateur.
 import { Suspense } from "react";
 import Link from "next/link";
-import { Plus, UserPlus, Users } from "lucide-react";
+import { FileUp, Plus, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -71,6 +71,12 @@ export default async function PageAdherents({
         }
         action={
           <div className="flex gap-2">
+            <Link href="/adherents/importer">
+              <Button variante="contour">
+                <FileUp className="size-4" />
+                <span className="hidden sm:inline">Importer</span>
+              </Button>
+            </Link>
             <Link href="/adherents/invitations">
               <Button variante="contour">
                 <UserPlus className="size-4" />
@@ -105,12 +111,20 @@ export default async function PageAdherents({
               titre="Votre premier adherent"
               description="Enregistrez les adherents de votre salle pour suivre leurs abonnements, leurs paiements et leurs passages."
               action={
-                <Link href="/adherents/nouveau">
-                  <Button>
-                    <Plus className="size-4" />
-                    Nouvel adherent
-                  </Button>
-                </Link>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link href="/adherents/importer">
+                    <Button variante="contour">
+                      <FileUp className="size-4" />
+                      Importer depuis un fichier
+                    </Button>
+                  </Link>
+                  <Link href="/adherents/nouveau">
+                    <Button>
+                      <Plus className="size-4" />
+                      Nouvel adherent
+                    </Button>
+                  </Link>
+                </div>
               }
             />
           )
