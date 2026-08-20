@@ -7,6 +7,7 @@ import {
   renouvelerCodeSeance,
   schemaParametresSalle,
 } from "@/lib/data/gym";
+import { messageErreur } from "@/lib/utils/erreurs";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -39,10 +40,7 @@ export async function actionModifierParametres(
     await modifierParametresSalle(resultat.data);
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "L'enregistrement a echoue. Reessayez.",
+      message: messageErreur(erreur, "L'enregistrement a echoue. Reessayez."),
     };
   }
 
@@ -70,10 +68,7 @@ export async function actionRenouvelerCodeSeance(): Promise<{
     return { code };
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "Le changement de code a echoue. Reessayez.",
+      message: messageErreur(erreur, "Le changement de code a echoue. Reessayez."),
     };
   }
 }

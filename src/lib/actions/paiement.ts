@@ -7,6 +7,7 @@ import {
   enregistrerPaiement,
   schemaPaiement,
 } from "@/lib/data/paiement";
+import { messageErreur } from "@/lib/utils/erreurs";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -48,10 +49,7 @@ export async function actionEnregistrerPaiement(
     await enregistrerPaiement(adherentId, resultat.data);
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "L'enregistrement a echoue. Reessayez.",
+      message: messageErreur(erreur, "L'enregistrement a echoue. Reessayez."),
     };
   }
 
@@ -90,10 +88,7 @@ export async function actionAnnulerPaiement(
     await annulerPaiement(id, resultat.data.motif);
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "L'annulation a echoue. Reessayez.",
+      message: messageErreur(erreur, "L'annulation a echoue. Reessayez."),
     };
   }
 

@@ -8,6 +8,7 @@ import {
   schemaSouscription,
   souscrireAbonnement,
 } from "@/lib/data/abonnement";
+import { messageErreur } from "@/lib/utils/erreurs";
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -39,10 +40,7 @@ export async function actionSouscrire(
     await souscrireAbonnement(adherentId, resultat.data);
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "La souscription a echoue. Reessayez.",
+      message: messageErreur(erreur, "La souscription a echoue. Reessayez."),
     };
   }
 
@@ -84,10 +82,7 @@ export async function actionAnnulerAbonnement(
     await annulerAbonnement(id, resultat.data.motif);
   } catch (erreur) {
     return {
-      message:
-        erreur instanceof Error
-          ? erreur.message
-          : "L'annulation a echoue. Reessayez.",
+      message: messageErreur(erreur, "L'annulation a echoue. Reessayez."),
     };
   }
 

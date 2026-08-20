@@ -19,6 +19,19 @@ const CLE_STOCKAGE = "fitt.pointages.file";
 /** Nouvelle tentative periodique tant que la file n'est pas vide. */
 const INTERVALLE_RETENTE_MS = 20_000;
 
+/**
+ * Taille maximale d'un envoi, sous la limite serveur (schemaLotPointages,
+ * max 200 — voir lib/data/pointage.ts).
+ *
+ * /!\ Sans ce decoupage, une file qui depasse 200 passages (salle restee
+ * hors ligne toute une journee) ferait echouer l'envoi EN BLOC a chaque
+ * tentative : le serveur rejette le tableau entier des qu'il depasse sa
+ * limite, meme les 200 premiers passages valides. La file resterait alors
+ * bloquee pour toujours, meme au retour du reseau — exactement ce que le
+ * §9 interdit ("la salle doit rester ouverte").
+ */
+const TAILLE_LOT_MAX = 150;
+
 export type PassageEnAttente = {
   cleLocale: string;
   adherentId: string;
@@ -73,25 +86,38 @@ export function useFilePointage() {
     setSynchroEnCours(true);
 
     try {
-      const resultat = await actionPointer(
-        // On n'envoie que ce que le serveur attend.
-        enAttente.map((p) => ({
-          cleLocale: p.cleLocale,
-          adherentId: p.adherentId,
-          horodatage: p.horodatage,
-          source: p.source,
-        })),
-      );
+      // Envoi par lots de TAILLE_LOT_MAX, jamais la file entiere d'un coup :
+      // voir le commentaire de TAILLE_LOT_MAX. Chaque lot acquitte est retire
+      // avant d'envoyer le suivant, donc un echec en cours de route laisse
+      // quand meme les lots precedents synchronises.
+      for (let i = 0; i < enAttente.length; i += TAILLE_LOT_MAX) {
+        const lot = enAttente
+          .slice(i, i + TAILLE_LOT_MAX)
+          // On n'envoie que ce que le serveur attend.
+          .map((p) => ({
+            cleLocale: p.cleLocale,
+            adherentId: p.adherentId,
+            horodatage: p.horodatage,
+            source: p.source,
+          }));
 
-      if (resultat.cles.length > 0) {
-        // On ne retire QUE les cles acquittees. Un passage arrive entre-temps
-        // dans la file reste en attente au lieu d'etre efface.
-        const acquittees = new Set(resultat.cles);
-        const restant = lireFile().filter(
-          (p) => !acquittees.has(p.cleLocale),
-        );
-        ecrireFile(restant);
-        setFile(restant);
+        const resultat = await actionPointer(lot);
+
+        if (resultat.cles.length > 0) {
+          // On ne retire QUE les cles acquittees. Un passage arrive entre-
+          // temps dans la file reste en attente au lieu d'etre efface.
+          const acquittees = new Set(resultat.cles);
+          const restant = lireFile().filter(
+            (p) => !acquittees.has(p.cleLocale),
+          );
+          ecrireFile(restant);
+          setFile(restant);
+        } else {
+          // Aucune cle acquittee : le serveur est injoignable ou en echec.
+          // Inutile d'enchainer les lots suivants dans la meme tentative, le
+          // minuteur ou le retour du reseau la relancera.
+          break;
+        }
       }
 
       setEnLigne(true);

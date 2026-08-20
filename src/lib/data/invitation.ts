@@ -222,6 +222,22 @@ export async function inscrireViaLien(
       throw new LienInvalideError("epuise");
     }
 
+    // Reservation immediate du "slot" — AVANT de creer quoi que ce soit.
+    //
+    // /!\ Le where compare "usages" a la valeur LUE ci-dessus (verrou
+    // optimiste) : si un envoi concurrent (double-tap sur mobile en
+    // connexion lente) a deja incremente ce compteur entre notre lecture et
+    // cet appel, count vaut 0 et on echoue proprement plutot que de laisser
+    // passer deux inscriptions sur un lien a usage unique. Meme principe que
+    // ouvrirSessionDepuisInvitation dans espace-adherent.ts — la transaction
+    // seule ne suffit pas a s'en proteger sous l'isolation par defaut de
+    // Postgres (READ COMMITTED).
+    const reservation = await tx.lienInscription.updateMany({
+      where: { id: lien.id, usages: lien.usages },
+      data: { usages: { increment: 1 } },
+    });
+    if (reservation.count === 0) throw new LienInvalideError("epuise");
+
     const gymId = lien.gymId;
 
     // Unicite (gymId, telephone) : la base la garantit, mais un message clair
@@ -257,11 +273,6 @@ export async function inscrireViaLien(
         lienInscriptionId: lien.id,
       },
       select: { id: true, prenom: true, numero: true },
-    });
-
-    await tx.lienInscription.update({
-      where: { id: lien.id },
-      data: { usages: { increment: 1 } },
     });
 
     return adherent;

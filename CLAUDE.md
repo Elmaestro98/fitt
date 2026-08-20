@@ -174,6 +174,28 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 `next.config.mjs` doit lister `*.supabase.co` dans `images.remotePatterns`,
 sinon `next/image` refuse de charger l'URL publique renvoyée par Storage.
 
+**Une transaction Prisma ne protège PAS un compteur contre la concurrence**
+Sous l'isolation par défaut de Postgres (READ COMMITTED), deux transactions
+peuvent lire la même valeur d'un compteur (`usages`, par ex.) avant que l'une
+des deux n'ait validé son écriture — les deux passent alors la même
+vérification. Rencontré le 19/08/2026 sur `inscrireViaLien` : un lien
+"1 personne" pouvait créer deux fiches en cas de double-tap. Le correctif est
+un verrou optimiste : `updateMany({ where: { id, usages: valeurLue },
+data: { usages: { increment: 1 } } })`, puis vérifier `count === 1`. Déjà
+appliqué correctement ailleurs (`ouvrirSessionDepuisInvitation`) — reprendre
+ce pattern partout où un compteur ou un flag "usage unique" est incrémenté
+dans une transaction.
+
+**Un plafond de lot sur une file qui se rejoue en bloc peut la bloquer pour toujours**
+`schemaLotPointages` plafonne un envoi à 200 passages : au-delà, Zod rejette
+le tableau ENTIER, pas seulement l'excès. Sans découpage côté client, une
+borne restée hors ligne assez longtemps pour dépasser 200 passages en file
+ne se synchronise plus jamais, même au retour du réseau — chaque tentative
+renvoie la même erreur sur la même file grandissante. Corrigé le 19/08/2026 :
+`useFilePointage` découpe l'envoi en lots de 150. Le même risque existe pour
+toute future file locale rejouée en bloc (mobile hors ligne, import...) :
+toujours découper côté client sous la limite serveur, jamais l'inverse.
+
 ---
 
 ## 7. Conventions de code
