@@ -62,7 +62,6 @@ export const adherentsQuiDecrochent = cache(async function adherentsQuiDecrochen
   const { gymId } = await getTenantContext();
 
   const maintenant = new Date();
-  const seuil = new Date(maintenant.getTime() - jours * JOUR_MS);
 
   // 1. Qui paie encore ? On garde debutLe : c'est la date de reference de
   //    ceux qui ne sont jamais venus.

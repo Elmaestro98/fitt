@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Sortie de secours quand .next est verrouille par un outil Windows
+# (voir distDir dans next.config.mjs).
+/.next-build/
 /out/
 
 # production
