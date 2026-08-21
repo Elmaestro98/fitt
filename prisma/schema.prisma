@@ -75,6 +75,15 @@ enum StatutReservation {
   ANNULEE
 }
 
+// Le cycle de vie d'une commande de boutique, du panier de l'adherent a la
+// remise en salle (paiement sur place, CLAUDE.md — decision du 21/08/2026).
+enum StatutCommande {
+  EN_ATTENTE // l'adherent vient de commander, rien de prepare cote staff
+  PRETE // le staff a prepare la commande, en attente de retrait
+  RECUPEREE // remise a l'adherent et payee
+  ANNULEE
+}
+
 // =============================================================================
 // Gym — une salle de sport cliente. C'est le "tenant".
 // Regle n°1 du projet : toute autre table porte un gymId pointant vers celle-ci.
@@ -132,6 +141,9 @@ model Gym {
   typesCours    TypeCours[]
   sessionsCours SessionCours[]
   reservations  Reservation[]
+  produits       Produit[]
+  commandes      Commande[]
+  lignesCommande LigneCommande[]
 
   @@map("gyms")
 }
@@ -199,6 +211,7 @@ model Adherent {
   invitations  Invitation[]
   sessions     SessionAdherent[]
   reservations Reservation[]
+  commandes    Commande[]
 
   // --- Contraintes et index (CLAUDE.md §10) ---
 
@@ -333,6 +346,11 @@ model Paiement {
   abonnementId String?
   abonnement   Abonnement? @relation(fields: [abonnementId], references: [id], onDelete: Restrict)
 
+  // Facultatif de la meme facon : encaissement d'une commande de boutique,
+  // remise en main propre a l'adherent.
+  commandeId String?
+  commande   Commande? @relation(fields: [commandeId], references: [id], onDelete: Restrict)
+
   // Entier en FCFA (§8). NEGATIF sur une ligne d'ANNULATION, et seulement
   // sur celle-la.
   montant Int
@@ -367,6 +385,7 @@ model Paiement {
   @@index([gymId, encaisseLe])
   @@index([gymId, adherentId])
   @@index([gymId, abonnementId])
+  @@index([gymId, commandeId])
   @@map("paiements")
 }
 
@@ -693,4 +712,109 @@ model Reservation {
   @@index([gymId, adherentId])
   @@index([gymId, sessionCoursId])
   @@map("reservations")
+}
+
+// =============================================================================
+// Produit — le catalogue de la boutique de la salle (compléments, textiles,
+// accessoires...). Par salle, comme une Formule.
+//
+// Un produit deja vendu ne se supprime jamais, il s'archive (actif=false,
+// meme principe que Formule, §9) : sinon l'historique des commandes devient
+// illisible.
+// =============================================================================
+model Produit {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  nom         String
+  description String?
+
+  // Entier en FCFA (§8).
+  prix Int
+
+  // Chemin dans Supabase Storage. Meme logique que Adherent.photoUrl : un
+  // produit sans photo est le cas normal au demarrage de la boutique.
+  photoUrl String?
+
+  // Disponibilite geree a la main par le staff (decision du 21/08/2026) :
+  // pas de quantite en stock a maintenir, juste "en vente" ou "en rupture".
+  actif Boolean @default(true)
+
+  ordre Int @default(0)
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  lignesCommande LigneCommande[]
+
+  @@index([gymId, actif])
+  @@map("produits")
+}
+
+// =============================================================================
+// Commande — une commande de boutique passee par un adherent depuis son
+// espace. Paiement a la recuperation en salle (decision du 21/08/2026), pas
+// de paiement en ligne : voir Paiement.commandeId, qui reutilise le journal
+// de caisse existant plutot que d'en creer un second.
+// =============================================================================
+model Commande {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Restrict)
+
+  statut StatutCommande @default(EN_ATTENTE)
+
+  // Note libre du staff : "rupture sur le shaker, contacter l'adherent"...
+  note String?
+
+  // Annulation : jamais de suppression, motif conserve (esprit du §9).
+  annuleeLe  DateTime?
+  motifAnnul String?
+
+  // Renseigne quand le staff remet la commande a l'adherent.
+  recupereeLe DateTime?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  lignes    LigneCommande[]
+  paiements Paiement[]
+
+  @@index([gymId, statut])
+  @@index([gymId, adherentId])
+  @@map("commandes")
+}
+
+// Le detail d'une commande : quel produit, quelle quantite, a quel prix.
+//
+// /!\ REGLE CRITIQUE (CLAUDE.md §9, meme principe que Abonnement.prixPaye)
+// nomProduit et prixUnitaire sont des PHOTOGRAPHIES prises au moment de la
+// commande. Un changement de prix du produit ne doit jamais reecrire
+// retroactivement une commande deja passee.
+model LigneCommande {
+  id String @id @default(cuid())
+
+  // Porte par toute table metier, sans exception (§3) — meme une table de
+  // detail comme celle-ci, voir Reservation pour le meme choix.
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  commandeId String
+  commande   Commande @relation(fields: [commandeId], references: [id], onDelete: Restrict)
+
+  produitId String
+  produit   Produit  @relation(fields: [produitId], references: [id], onDelete: Restrict)
+
+  nomProduit   String
+  prixUnitaire Int
+  quantite     Int
+
+  @@index([gymId, commandeId])
+  @@map("lignes_commande")
 }

@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MapPin, Phone, Users } from "lucide-react";
+import { ChevronLeft, Info as InfoIcon, MapPin, Phone, Users } from "lucide-react";
 import { BoutonToggleSalle } from "@/components/admin/bouton-toggle-salle";
 import { StatutBadge } from "@/components/admin/table-salles";
+import { Card, CardContent } from "@/components/shadcn/card";
+import { Badge } from "@/components/shadcn/badge";
+import { Alert, AlertDescription } from "@/components/shadcn/alert";
 import { detailSalle } from "@/lib/data/gym";
 import { formatDateLongue } from "@/lib/utils/format";
 import { formaterTelephoneSalle } from "@/lib/utils/telephone";
@@ -44,11 +47,14 @@ export default async function PageDetailSalle({
       </div>
 
       {statut === "en_attente" && (
-        <div className="rounded-control border border-admin-accent/30 bg-admin-accent/10 px-4 py-3 text-sm text-admin-text">
-          Cette salle vient de creer son organisation et n&apos;a encore
-          jamais ete activee. Son staff n&apos;a aucun acces tant que vous ne
-          cliquez pas sur « Reactiver ».
-        </div>
+        <Alert className="rounded-control border-admin-accent/30 bg-admin-accent/10 text-admin-text [&>svg]:text-admin-accent">
+          <InfoIcon />
+          <AlertDescription className="text-admin-text">
+            Cette salle vient de creer son organisation et n&apos;a encore
+            jamais ete activee. Son staff n&apos;a aucun acces tant que vous
+            ne cliquez pas sur « Reactiver ».
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -65,59 +71,65 @@ export default async function PageDetailSalle({
         />
       </div>
 
-      <div className="rounded-card border border-admin-line bg-admin-surface p-4">
-        <p className="text-sm font-medium">Coordonnees</p>
-        <div className="mt-3 space-y-2 text-sm text-admin-muted">
-          <p className="flex items-center gap-2">
-            <Phone className="size-4 shrink-0" />
-            {salle.telephone
-              ? formaterTelephoneSalle(salle.telephone)
-              : "Aucun telephone renseigne"}
-          </p>
-          <p className="flex items-center gap-2">
-            <MapPin className="size-4 shrink-0" />
-            {[salle.adresse, salle.ville].filter(Boolean).join(", ") ||
-              "Aucune adresse renseignee"}
-          </p>
-        </div>
-      </div>
+      <Card className="gap-0 rounded-card border-admin-line bg-admin-surface py-4 text-admin-text">
+        <CardContent className="px-4">
+          <p className="text-sm font-medium">Coordonnees</p>
+          <div className="mt-3 space-y-2 text-sm text-admin-muted">
+            <p className="flex items-center gap-2">
+              <Phone className="size-4 shrink-0" />
+              {salle.telephone
+                ? formaterTelephoneSalle(salle.telephone)
+                : "Aucun telephone renseigne"}
+            </p>
+            <p className="flex items-center gap-2">
+              <MapPin className="size-4 shrink-0" />
+              {[salle.adresse, salle.ville].filter(Boolean).join(", ") ||
+                "Aucune adresse renseignee"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-card border border-admin-line bg-admin-surface p-4">
-        <p className="text-sm font-medium">Staff ({staff.length})</p>
-        <p className="mt-0.5 text-xs text-admin-muted">
-          Comptes Clerk membres de cette organisation.
-        </p>
-
-        {staff.length === 0 ? (
-          <p className="mt-4 text-sm text-admin-muted">
-            Personne n&apos;a encore rejoint cette organisation.
+      <Card className="gap-0 rounded-card border-admin-line bg-admin-surface py-4 text-admin-text">
+        <CardContent className="px-4">
+          <p className="text-sm font-medium">Staff ({staff.length})</p>
+          <p className="mt-0.5 text-xs text-admin-muted">
+            Comptes Clerk membres de cette organisation.
           </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-admin-line">
-            {staff.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center justify-between gap-3 py-2.5 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{m.nom}</p>
-                  <p className="truncate text-xs text-admin-muted">{m.email}</p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-pill px-2.5 py-1 text-xs font-medium",
-                    m.role === "Admin"
-                      ? "bg-admin-accent/15 text-admin-accent"
-                      : "bg-admin-line text-admin-muted",
-                  )}
+
+          {staff.length === 0 ? (
+            <p className="mt-4 text-sm text-admin-muted">
+              Personne n&apos;a encore rejoint cette organisation.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-admin-line">
+              {staff.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
                 >
-                  {m.role}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{m.nom}</p>
+                    <p className="truncate text-xs text-admin-muted">
+                      {m.email}
+                    </p>
+                  </div>
+                  <Badge
+                    className={cn(
+                      "rounded-pill border-transparent px-2.5 py-1 font-medium",
+                      m.role === "Admin"
+                        ? "bg-admin-accent/15 text-admin-accent"
+                        : "bg-admin-line text-admin-muted",
+                    )}
+                  >
+                    {m.role}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -132,12 +144,14 @@ function Info({
   icone?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-admin-line bg-admin-surface px-4 py-3">
-      <p className="flex items-center gap-1.5 font-[family-name:var(--font-mono-admin)] text-lg font-medium tabular-nums">
-        {icone}
-        {valeur}
-      </p>
-      <p className="mt-0.5 text-xs text-admin-muted">{label}</p>
-    </div>
+    <Card className="gap-0 rounded-card border-admin-line bg-admin-surface py-3 text-admin-text">
+      <CardContent className="px-4">
+        <p className="flex items-center gap-1.5 font-[family-name:var(--font-mono-admin)] text-lg font-medium tabular-nums">
+          {icone}
+          {valeur}
+        </p>
+        <p className="mt-0.5 text-xs text-admin-muted">{label}</p>
+      </CardContent>
+    </Card>
   );
 }

@@ -47,3 +47,19 @@ export function BadgeStatut({ statut }: { statut: StatutAdherent }) {
   const { libelle, ton } = STATUTS[statut];
   return <Badge ton={ton}>{libelle}</Badge>;
 }
+
+/* Statuts de commande de la boutique. Meme principe : la base ne stocke que
+   des MAJUSCULES non traduites, le francais vit ici. */
+const STATUTS_COMMANDE = {
+  EN_ATTENTE: { libelle: "En preparation", ton: "alerte" },
+  PRETE: { libelle: "Prete", ton: "info" },
+  RECUPEREE: { libelle: "Recuperee", ton: "succes" },
+  ANNULEE: { libelle: "Annulee", ton: "neutre" },
+} as const;
+
+export type StatutCommande = keyof typeof STATUTS_COMMANDE;
+
+export function BadgeStatutCommande({ statut }: { statut: StatutCommande }) {
+  const { libelle, ton } = STATUTS_COMMANDE[statut];
+  return <Badge ton={ton}>{libelle}</Badge>;
+}

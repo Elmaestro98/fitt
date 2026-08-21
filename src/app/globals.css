@@ -218,3 +218,21 @@ body {
     animation: none;
   }
 }
+
+/* Variante claire de la console /admin, basculee par le bouton dans l'en-tete
+   (src/components/admin/admin-shell.tsx). Le sombre reste le rendu par
+   defaut — voir le commentaire sur --color-admin-* plus haut : ceci ne
+   remplace pas ce choix, ca donne juste une option a qui prefere lire sur
+   fond clair en plein jour. Ne s'applique qu'a l'interieur d'un conteneur
+   marque data-admin-theme="light". */
+[data-admin-theme="light"] {
+  --color-admin-bg: #f7f8fa;
+  --color-admin-surface: #ffffff;
+  --color-admin-surface-hover: #eef0f2;
+  --color-admin-line: #e2e6ea;
+  --color-admin-text: #14171b;
+  --color-admin-muted: #6b7280;
+  --color-admin-accent: #ff6b35;
+  --color-admin-success: #00af79;
+  --color-admin-danger: #ba1a1a;
+}

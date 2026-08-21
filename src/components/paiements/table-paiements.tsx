@@ -19,6 +19,8 @@ type LigneJournal = {
   contrepartie: { id: string; motif: string | null } | null;
   annule: { id: string } | null;
   abonnement: { id: string; nomFormule: string } | null;
+  /** Renseigne quand l'encaissement solde une commande de la boutique. */
+  commandeId: string | null;
   adherent: {
     id: string;
     prenom: string;
@@ -81,7 +83,8 @@ export function TablePaiements({ lignes }: { lignes: LigneJournal[] }) {
                   <span className={contrepartie ? "text-danger" : "text-ink"}>
                     {contrepartie
                       ? "Annulation"
-                      : (p.abonnement?.nomFormule ?? "Encaissement")}
+                      : (p.abonnement?.nomFormule ??
+                        (p.commandeId ? "Commande boutique" : "Encaissement"))}
                   </span>
                   {(p.motif || p.reference) && (
                     <span className="block max-w-56 truncate text-xs text-muted">

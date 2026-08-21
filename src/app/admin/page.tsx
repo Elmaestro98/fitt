@@ -1,4 +1,5 @@
 import { Building2 } from "lucide-react";
+import { Card, CardContent } from "@/components/shadcn/card";
 import { TableSalles } from "@/components/admin/table-salles";
 import { FormulaireActivationEmail } from "@/components/admin/formulaire-activation-email";
 import { Finances } from "@/components/admin/finances";
@@ -52,13 +53,15 @@ export default async function PageAdmin({
       <FormulaireActivationEmail />
 
       {salles.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-card border border-admin-line py-16 text-center">
-          <Building2 className="size-6 text-admin-muted" />
-          <p className="text-sm text-admin-muted">
-            Aucune salle pour le moment. Une salle apparait ici des qu&apos;un
-            gerant cree son organisation dans Fitt.
-          </p>
-        </div>
+        <Card className="items-center gap-3 rounded-card border-admin-line bg-transparent py-16 text-center text-admin-text">
+          <CardContent className="flex flex-col items-center gap-3">
+            <Building2 className="size-6 text-admin-muted" />
+            <p className="text-sm text-admin-muted">
+              Aucune salle pour le moment. Une salle apparait ici des
+              qu&apos;un gerant cree son organisation dans Fitt.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <TableSalles salles={salles} />
       )}
@@ -76,22 +79,24 @@ function Stat({
   accent?: "success" | "danger" | "accent";
 }) {
   return (
-    <div className="rounded-card border border-admin-line bg-admin-surface px-4 py-3.5">
-      <p
-        className={
-          "font-[family-name:var(--font-mono-admin)] text-2xl font-medium tabular-nums " +
-          (accent === "success"
-            ? "text-admin-success"
-            : accent === "danger"
-              ? "text-admin-danger"
-              : accent === "accent"
-                ? "text-admin-accent"
-                : "text-admin-text")
-        }
-      >
-        {valeur}
-      </p>
-      <p className="mt-0.5 text-xs text-admin-muted">{label}</p>
-    </div>
+    <Card className="rounded-card border-admin-line bg-admin-surface py-3.5 gap-0 text-admin-text">
+      <CardContent className="px-4">
+        <p
+          className={
+            "font-[family-name:var(--font-mono-admin)] text-2xl font-medium tabular-nums " +
+            (accent === "success"
+              ? "text-admin-success"
+              : accent === "danger"
+                ? "text-admin-danger"
+                : accent === "accent"
+                  ? "text-admin-accent"
+                  : "text-admin-text")
+          }
+        >
+          {valeur}
+        </p>
+        <p className="mt-0.5 text-xs text-admin-muted">{label}</p>
+      </CardContent>
+    </Card>
   );
 }

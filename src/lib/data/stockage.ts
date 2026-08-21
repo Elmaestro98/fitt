@@ -10,8 +10,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { supabase } from "@/lib/supabase";
 
-const BUCKET = "photos-adherents";
-const TAILLE_MAX = 5 * 1024 * 1024; // 5 Mo — largement assez pour une photo de profil, peu pour un telephone en 4G faible.
+/* Un bucket par nature de contenu. Les deux sont PUBLICS : ni une photo de
+   profil ni une photo de produit n'est une donnee sensible, et sans bucket
+   public next/image ne peut pas les afficher (§6). */
+const BUCKET_ADHERENTS = "photos-adherents";
+const BUCKET_PRODUITS = "photos-produits";
+
+/** 5 Mo — largement assez pour une photo, peu pour un telephone en 4G faible. */
+const TAILLE_MAX = 5 * 1024 * 1024;
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -27,16 +33,18 @@ export class PhotoInvalideError extends Error {
 }
 
 /**
- * Valide et televerse une photo de profil d'adherent, renvoie son URL
- * publique (le bucket est public : une photo de profil n'est pas une donnee
- * sensible, et Avatar l'affiche directement via <Image src=...>).
+ * Valide et televerse une image, renvoie son URL publique.
  *
  * Le nom de fichier est un identifiant aleatoire — jamais le nom d'origine
- * (peut contenir n'importe quoi), jamais l'id de l'adherent : cet appel a
- * lieu AVANT sa creation en base, pour ne pas garder une transaction Prisma
- * ouverte pendant un appel reseau externe.
+ * (peut contenir n'importe quoi), jamais l'id de l'enregistrement : ces appels
+ * ont lieu AVANT sa creation en base, pour ne pas garder une transaction
+ * Prisma ouverte pendant un appel reseau externe.
+ *
+ * Le prefixe gymId dans le chemin n'est pas une securite — le bucket est
+ * public — mais il garde le stockage lisible salle par salle.
  */
-export async function televerserPhotoAdherent(
+async function televerserImage(
+  bucket: string,
   gymId: string,
   fichier: File,
 ): Promise<string> {
@@ -56,12 +64,24 @@ export async function televerserPhotoAdherent(
   const chemin = `${gymId}/${randomUUID()}.${extension}`;
 
   const { error } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(chemin, fichier, { contentType: fichier.type, upsert: false });
 
   if (error) {
     throw new PhotoInvalideError("L'envoi de la photo a echoue. Reessayez.");
   }
 
-  return supabase.storage.from(BUCKET).getPublicUrl(chemin).data.publicUrl;
+  return supabase.storage.from(bucket).getPublicUrl(chemin).data.publicUrl;
+}
+
+/** Photo de profil d'un adherent. Les initiales restent le cas NORMAL :
+ *  une salle qui saisit 300 adherents au carnet ne mettra pas 300 photos. */
+export function televerserPhotoAdherent(gymId: string, fichier: File) {
+  return televerserImage(BUCKET_ADHERENTS, gymId, fichier);
+}
+
+/** Photo d'un produit de la boutique. Facultative elle aussi : le catalogue
+ *  affiche une icone par defaut tant qu'aucune image n'est fournie. */
+export function televerserPhotoProduit(gymId: string, fichier: File) {
+  return televerserImage(BUCKET_PRODUITS, gymId, fichier);
 }

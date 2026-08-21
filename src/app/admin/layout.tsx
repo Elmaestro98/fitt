@@ -15,9 +15,9 @@
 // par une salle cliente. JetBrains Mono est charge ICI, pas dans le layout
 // racine — le reste du produit reste en Inter seul.
 import { JetBrains_Mono } from "next/font/google";
-import { UserButton } from "@clerk/nextjs";
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { getSuperAdminContext } from "@/lib/super-admin";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -49,28 +49,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div
-      className={`${jetbrainsMono.variable} min-h-screen bg-admin-bg text-admin-text`}
-      style={{ colorScheme: "dark" }}
-    >
-      {/* Fin liseré de marque en tete d'ecran : le seul emprunt direct a
-          l'orange du produit, comme un temoin "sous tension". */}
-      <div className="h-[2px] bg-admin-accent" />
-
-      <header className="border-b border-admin-line px-6 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="size-4 text-admin-accent" />
-            <p className="text-sm">
-              <span className="font-semibold tracking-tight">Fitt</span>
-              <span className="text-admin-muted"> · Administration</span>
-            </p>
-          </div>
-          <UserButton />
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+    <div className={jetbrainsMono.variable}>
+      <AdminShell>{children}</AdminShell>
     </div>
   );
 }

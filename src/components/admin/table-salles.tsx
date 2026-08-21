@@ -10,6 +10,16 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import { BoutonToggleSalle } from "@/components/admin/bouton-toggle-salle";
+import { Input } from "@/components/shadcn/input";
+import { Button } from "@/components/shadcn/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/shadcn/table";
 import { formatDate } from "@/lib/utils/format";
 import { LIBELLES_STATUT_SALLE, statutSalle } from "@/lib/utils/salle";
 import { cn } from "@/lib/utils/cn";
@@ -64,102 +74,100 @@ export function TableSalles({ salles }: { salles: Salle[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="relative">
+      <div className="relative max-w-xs">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-admin-muted" />
-        <input
+        <Input
           type="search"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Filtrer par nom ou ville..."
           aria-label="Filtrer les salles"
           className={cn(
-            "h-10 w-full max-w-xs rounded-control border border-admin-line bg-admin-surface",
+            "h-10 rounded-control border-admin-line bg-admin-surface",
             "pr-3 pl-9 text-sm text-admin-text placeholder:text-admin-muted",
-            "focus:border-admin-accent focus:outline-none",
+            "focus-visible:border-admin-accent focus-visible:ring-admin-accent/30",
           )}
         />
       </div>
 
       <div className="overflow-hidden rounded-card border border-admin-line">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-admin-line text-left text-xs tracking-wide text-admin-muted uppercase">
-                <ThTriable
-                  actif={tri.colonne === "nom"}
-                  sens={tri.sens}
-                  onClick={() => trierPar("nom")}
+        <Table className="min-w-[640px]">
+          <TableHeader>
+            <TableRow className="border-admin-line text-xs tracking-wide text-admin-muted uppercase hover:bg-transparent">
+              <ThTriable
+                actif={tri.colonne === "nom"}
+                sens={tri.sens}
+                onClick={() => trierPar("nom")}
+              >
+                Salle
+              </ThTriable>
+              <Th>Ville</Th>
+              <ThTriable
+                align="right"
+                actif={tri.colonne === "adherents"}
+                sens={tri.sens}
+                onClick={() => trierPar("adherents")}
+              >
+                Adherents
+              </ThTriable>
+              <ThTriable
+                actif={tri.colonne === "creeLe"}
+                sens={tri.sens}
+                onClick={() => trierPar("creeLe")}
+              >
+                Creee le
+              </ThTriable>
+              <Th>Statut</Th>
+              <TableHead className="w-32" />
+            </TableRow>
+          </TableHeader>
+          <TableBody className="[&_tr:last-child]:border-0">
+            {lignes.map((s) => {
+              const statut = statutSalle(s);
+              return (
+                <TableRow
+                  key={s.id}
+                  className="border-admin-line transition-colors hover:bg-admin-surface-hover"
                 >
-                  Salle
-                </ThTriable>
-                <Th>Ville</Th>
-                <ThTriable
-                  align="right"
-                  actif={tri.colonne === "adherents"}
-                  sens={tri.sens}
-                  onClick={() => trierPar("adherents")}
-                >
-                  Adherents
-                </ThTriable>
-                <ThTriable
-                  actif={tri.colonne === "creeLe"}
-                  sens={tri.sens}
-                  onClick={() => trierPar("creeLe")}
-                >
-                  Creee le
-                </ThTriable>
-                <Th>Statut</Th>
-                <th className="w-32" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-admin-line">
-              {lignes.map((s) => {
-                const statut = statutSalle(s);
-                return (
-                  <tr
-                    key={s.id}
-                    className="transition-colors hover:bg-admin-surface-hover"
-                  >
-                    <td className="px-4 py-3 font-medium">
-                      <Link
-                        href={`/admin/${s.id}`}
-                        className="hover:text-admin-accent hover:underline"
-                      >
-                        {s.nom}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-admin-muted">
-                      {s.ville ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right font-[family-name:var(--font-mono-admin)] tabular-nums">
-                      {s._count.adherents}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap font-[family-name:var(--font-mono-admin)] text-admin-muted">
-                      {formatDate(s.creeLe)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatutBadge statut={statut} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <BoutonToggleSalle salle={s} />
-                    </td>
-                  </tr>
-                );
-              })}
+                  <TableCell className="py-3 font-medium whitespace-nowrap">
+                    <Link
+                      href={`/admin/${s.id}`}
+                      className="hover:text-admin-accent hover:underline"
+                    >
+                      {s.nom}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="py-3 text-admin-muted">
+                    {s.ville ?? "—"}
+                  </TableCell>
+                  <TableCell className="py-3 text-right font-[family-name:var(--font-mono-admin)] tabular-nums">
+                    {s._count.adherents}
+                  </TableCell>
+                  <TableCell className="py-3 font-[family-name:var(--font-mono-admin)] text-admin-muted">
+                    {formatDate(s.creeLe)}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <StatutBadge statut={statut} />
+                  </TableCell>
+                  <TableCell className="py-3 text-right">
+                    <BoutonToggleSalle salle={s} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
 
-              {lignes.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-10 text-center text-admin-muted"
-                  >
-                    Aucune salle ne correspond a « {recherche} ».
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            {lignes.length === 0 && (
+              <TableRow className="border-admin-line hover:bg-transparent">
+                <TableCell
+                  colSpan={6}
+                  className="py-10 text-center text-admin-muted"
+                >
+                  Aucune salle ne correspond a « {recherche} ».
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
@@ -206,9 +214,11 @@ function Th({
   align?: "left" | "right";
 }) {
   return (
-    <th className={cn("px-4 py-3 font-medium", align === "right" && "text-right")}>
+    <TableHead
+      className={cn("py-3 font-medium", align === "right" && "text-right")}
+    >
       {children}
-    </th>
+    </TableHead>
   );
 }
 
@@ -227,19 +237,23 @@ function ThTriable({
 }) {
   const Icone = !actif ? ArrowUpDown : sens === 1 ? ArrowUp : ArrowDown;
   return (
-    <th className={cn("px-4 py-3 font-medium", align === "right" && "text-right")}>
-      <button
+    <TableHead
+      className={cn("py-3 font-medium", align === "right" && "text-right")}
+    >
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onClick}
         className={cn(
-          "inline-flex items-center gap-1 hover:text-admin-text focus:outline-none",
+          "h-auto gap-1 p-0 text-xs font-medium tracking-wide text-admin-muted uppercase hover:bg-transparent hover:text-admin-text",
           align === "right" && "flex-row-reverse",
           actif && "text-admin-text",
         )}
       >
         {children}
         <Icone className="size-3" />
-      </button>
-    </th>
+      </Button>
+    </TableHead>
   );
 }

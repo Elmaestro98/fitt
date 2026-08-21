@@ -160,9 +160,13 @@ Tout store client (Zustand) lu au premier rendu provoque une erreur d'hydratatio
 **TypeScript 6 incompatible avec Next.js 15**
 `npm i -D typescript` installe la 6.x, qui rejette `import "./globals.css"` (erreur TS2882 : *Cannot find module or type declarations for side-effect import*). Next 15 ne déclare que `*.module.css`. Rester en `typescript@^5`.
 
-**Supabase Storage — bucket et variables d'environnement**
-Bucket `photos-adherents`, **public** (une photo de profil n'est pas une
-donnée sensible ; sans bucket public, `next/image` ne peut pas l'afficher).
+**Supabase Storage — buckets et variables d'environnement**
+Deux buckets, **publics** tous les deux (ni une photo de profil ni une photo
+de produit n'est une donnée sensible ; sans bucket public, `next/image` ne
+peut pas les afficher) : `photos-adherents` et `photos-produits`.
+Un bucket par nature de contenu, `lib/data/stockage.ts` expose une fonction
+par usage au-dessus d'une validation commune (format, 5 Mo, nom de fichier
+aléatoire).
 Deux variables, dans `.env` **et** `.env.local`, sans préfixe `NEXT_PUBLIC_`
 (la clé `service_role` ne doit jamais atteindre le navigateur — tout
 téléversement passe par une Server Action, jamais par un appel direct
@@ -173,6 +177,23 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 `next.config.mjs` doit lister `*.supabase.co` dans `images.remotePatterns`,
 sinon `next/image` refuse de charger l'URL publique renvoyée par Storage.
+
+**`@supabase/supabase-js` ne démarre pas dans un script Node 20 autonome**
+Le client instancie un `RealtimeClient` qui exige un WebSocket natif, absent
+de Node 20 (`Error: Node.js 20 detected without native WebSocket support`).
+L'application n'est pas concernée : Next.js en fournit un. Pour un script
+jetable d'administration du Storage, appeler l'API REST directement
+(`GET`/`POST {SUPABASE_URL}/storage/v1/bucket`, en-têtes `apikey` et
+`Authorization: Bearer`) plutôt que d'installer `ws`.
+
+**Un champ absent d'un `update` Prisma n'est pas un champ mis à `null`**
+Et c'est exactement ce qu'il faut exploiter pour un fichier facultatif. À la
+modification d'un produit, « ne pas envoyer de photo » veut dire *ne pas y
+toucher*, pas *l'effacer* : sans cette distinction, chaque changement de prix
+supprimerait l'image. D'où le type `IntentionPhoto` à trois états explicites
+(`inchangee` / `remplacee` / `retiree`) dans `lib/data/produit.ts`, et la case
+« Retirer la photo » côté formulaire — sans elle, une photo posée par erreur
+ne pourrait plus jamais être enlevée.
 
 **Une transaction Prisma ne protège PAS un compteur contre la concurrence**
 Sous l'isolation par défaut de Postgres (READ COMMITTED), deux transactions
@@ -282,6 +303,8 @@ formatFCFA(15000) // "15 000 FCFA"  (espace insécable fine, pas de centimes)
 | Supprimer physiquement un paiement | Traçabilité comptable. Annulation avec motif et écriture de contrepartie uniquement |
 | Recalculer `dateFin` à partir de la formule à l'affichage | Un changement de tarif corromprait rétroactivement les abonnements en cours. `dateFin` est figée à la souscription |
 | Supprimer une formule utilisée | Archiver seulement, sinon l'historique devient illisible |
+| Supprimer un produit vendu, ou lire son prix depuis `Produit` à l'affichage d'une commande | Même raison qu'une formule : `LigneCommande` fige `nomProduit` et `prixUnitaire` à la commande |
+| Faire confiance à un prix envoyé par le navigateur | Le panier de l'espace adhérent n'envoie que des identifiants et des quantités. Les tarifs sont relus en base avant écriture |
 | Bloquer le pointage en cas de coupure réseau | La salle doit rester ouverte. File locale + synchronisation au retour |
 | Exposer `gymId` dans une URL ou un formulaire | Vecteur direct de fuite inter-tenant |
 | Stocker un jeton d'invitation en clair | Une lecture de la base donnerait accès à tous les espaces |
@@ -301,6 +324,7 @@ Invitation · LienInscription
 Formule · Abonnement · Paiement
 Pointage
 Coach · TypeCours · SessionCours · Reservation
+Produit · Commande · LigneCommande
 Programme · Mesure
 JournalMessage · JournalAudit
 ```
@@ -371,10 +395,22 @@ utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visi
   - Décisions du 20/08/2026 : pas de compte coach, séances créées une par une (pas de récurrence), réservation faite par le staff uniquement (pas de self-service adhérent) — à reprendre plus tard si besoin
 - [~] Lot 5 — rapports et back-office Super Admin :
   - [x] Rapports (`/rapports`) — encaissements reels par mois, repartition par methode de paiement, taux de renouvellement (delai de grace 14 j), top adherents assidus, filtre de periode (3/6/12/24 mois) et export CSV (`/api/rapports/export`, premiere route API du projet — GET, hors Server Actions car un telechargement a besoin d'un en-tete Content-Disposition). Valide le 19/08/2026
-  - [ ] Back-office Super Admin (vue AFRICATECHNOLOGIE sur l'ensemble des salles clientes) — non commence
+  - [x] Back-office Super Admin (`/admin`) — vue AFRICATECHNOLOGIE sur l'ensemble des salles clientes. Valide le 21/08/2026 :
+    - Acces reserve par `getSuperAdminContext()`, qui lit `publicMetadata.superAdmin` sur le compte Clerk — **pas** une organisation (piste abandonnee, voir §6)
+    - Les seules requetes Prisma du projet sans filtre `gymId`, par nature et de facon commentee
+    - Une salle nouvellement creee arrive **sans acces** (`actif: false`) : le Super Admin l'active, par la fiche ou par l'e-mail de son gerant
+    - Trois etats distincts grace a `Gym.activeeLe` : active / en attente (jamais activee) / suspendue (activee puis coupee)
+    - Fiche detaillee par salle (adherents, abonnements actifs, staff Clerk), tri des colonnes, vue financiere agregee avec filtre par mois
+    - Identite visuelle volontairement distincte (console sombre, JetBrains Mono), avec bascule clair/sombre — jetons `--color-admin-*` dans globals.css, sans toucher au reste du produit qui reste clair
+- [x] Boutique — hors feuille de route d'origine, ajoutee le 21/08/2026 et validee de bout en bout le meme jour (catalogue staff -> commande adherent -> preparation -> remise -> encaissement -> journal de caisse) :
+  - [x] `Produit` — catalogue par salle (`/boutique`), archivage jamais suppression (§9)
+  - [x] `Commande` / `LigneCommande` — `EN_ATTENTE` -> `PRETE` -> `RECUPEREE`, ou `ANNULEE` avec motif. `nomProduit` et `prixUnitaire` figes a la commande, comme `Abonnement.prixPaye`
+  - [x] Espace adherent (`/espace/boutique`, `/espace/commandes`) — panier en memoire du navigateur seulement, auto-annulation tant que la salle n'a rien prepare
+  - [x] Back-office (`/commandes`) — file a traiter avec compteur, historique, remise + encaissement
+  - **Paiement sur place a la recuperation** (decision du 21/08/2026), pas en ligne : la remise ecrit dans le journal de caisse existant (`Paiement.commandeId`), donc ces ventes remontent seules dans `/rapports` et dans la vue financiere Super Admin. Le paiement en ligne reste le Lot 6
 - [ ] Lot 6 — paiements en ligne Wave / Orange Money
 
-Le **Lot 1 est le seuil de commercialisation** : une salle doit pouvoir abandonner son carnet à la fin de ce lot. Le code y est, mais aucun parcours n'a encore été rejoué de bout en bout dans le navigateur — c'est la prochaine étape avant de considérer le seuil franchi.
+Le **Lot 1 est le seuil de commercialisation** : une salle doit pouvoir abandonner son carnet à la fin de ce lot. Franchi le 19/08/2026, parcours rejoué de bout en bout dans le navigateur.
 
 ---
 
