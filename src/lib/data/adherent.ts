@@ -31,6 +31,7 @@ export async function listerAdherents({
   const { gymId } = await getTenantContext();
 
   const termes = recherche?.trim();
+  const chiffres = termes?.replace(/\D/g, "");
 
   // Le gymId est toujours present dans le where. Les autres criteres
   // viennent s'ajouter, jamais le remplacer.
@@ -43,7 +44,11 @@ export async function listerAdherents({
             { prenom: { contains: termes, mode: "insensitive" as const } },
             { nom: { contains: termes, mode: "insensitive" as const } },
             { numero: { contains: termes, mode: "insensitive" as const } },
-            { telephone: { contains: termes.replace(/\D/g, "") } },
+            // "contains: ''" correspondrait a N'IMPORTE QUEL telephone : une
+            // recherche sans aucun chiffre ("Moussa") ne doit pas ajouter ce
+            // critere, sinon il rend le OR entier toujours vrai et annule le
+            // filtre par nom.
+            ...(chiffres ? [{ telephone: { contains: chiffres } }] : []),
           ],
         }
       : {}),

@@ -52,8 +52,8 @@ enum MethodePaiement {
 
 // Comment le passage a ete saisi. Sert aux rapports, jamais a la logique.
 enum SourcePointage {
-  KIOSQUE  // borne a l'entree, en libre service
-  STAFF    // saisi par la reception
+  KIOSQUE // borne a l'entree, en libre service
+  STAFF // saisi par la reception
   ADHERENT // depuis l'espace adherent, avec le code du jour affiche a l'accueil
 }
 
@@ -62,6 +62,17 @@ enum SourcePointage {
 enum TypePaiement {
   ENCAISSEMENT
   ANNULATION
+}
+
+enum StatutSessionCours {
+  PLANIFIEE
+  ANNULEE
+  TERMINEE
+}
+
+enum StatutReservation {
+  CONFIRMEE
+  ANNULEE
 }
 
 // =============================================================================
@@ -102,14 +113,18 @@ model Gym {
   creeLe DateTime @default(now())
   majLe  DateTime @updatedAt
 
-  adherents   Adherent[]
-  formules    Formule[]
-  abonnements Abonnement[]
-  paiements   Paiement[]
-  pointages   Pointage[]
-  liens       LienInscription[]
-  invitations Invitation[]
-  sessions    SessionAdherent[]
+  adherents     Adherent[]
+  formules      Formule[]
+  abonnements   Abonnement[]
+  paiements     Paiement[]
+  pointages     Pointage[]
+  liens         LienInscription[]
+  invitations   Invitation[]
+  sessions      SessionAdherent[]
+  coachs        Coach[]
+  typesCours    TypeCours[]
+  sessionsCours SessionCours[]
+  reservations  Reservation[]
 
   @@map("gyms")
 }
@@ -171,11 +186,12 @@ model Adherent {
   lienInscriptionId String?
   lienInscription   LienInscription? @relation(fields: [lienInscriptionId], references: [id], onDelete: SetNull)
 
-  abonnements Abonnement[]
-  paiements   Paiement[]
-  pointages   Pointage[]
-  invitations Invitation[]
-  sessions    SessionAdherent[]
+  abonnements  Abonnement[]
+  paiements    Paiement[]
+  pointages    Pointage[]
+  invitations  Invitation[]
+  sessions     SessionAdherent[]
+  reservations Reservation[]
 
   // --- Contraintes et index (CLAUDE.md §10) ---
 
@@ -325,8 +341,8 @@ model Paiement {
   // Renseignes uniquement sur une ligne d'ANNULATION.
   // @unique : un encaissement ne peut etre annule qu'une fois. C'est la base
   // qui l'interdit, pas seulement le code.
-  annuleId String?   @unique
-  annule   Paiement? @relation("Contrepartie", fields: [annuleId], references: [id], onDelete: Restrict)
+  annuleId     String?   @unique
+  annule       Paiement? @relation("Contrepartie", fields: [annuleId], references: [id], onDelete: Restrict)
   contrepartie Paiement? @relation("Contrepartie")
 
   // Obligatoire sur une ANNULATION (§9). Verifie par Zod avant ecriture :
@@ -515,4 +531,159 @@ model SessionAdherent {
 
   @@index([gymId, adherentId])
   @@map("sessions_adherent")
+}
+
+// =============================================================================
+// Coach — la personne qui anime un cours.
+//
+// Une simple fiche, sur le meme principe qu'Adherent : pas de compte Clerk, pas
+// de connexion au back-office (Lot 4, decision du 20/08). Le staff cree et gere
+// ses fiches coachs, comme il gere ses adherents.
+// =============================================================================
+model Coach {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  prenom String
+  nom    String
+
+  telephone  String?
+  specialite String? // "Yoga, Cross-training"
+  photoUrl   String? // Chemin dans Supabase Storage, comme Adherent.photoUrl.
+
+  // Un coach ayant anime des seances passees ne se supprime pas, il s'archive
+  // (meme logique que Formule.actif, §9) : sinon l'historique des seances
+  // pointerait vers un coach introuvable.
+  actif Boolean @default(true)
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  sessionsCours SessionCours[]
+
+  @@index([gymId, actif])
+  @@map("coachs")
+}
+
+// =============================================================================
+// TypeCours — le catalogue des types de seances proposees par la salle
+// ("Yoga", "Cross-training", "Zumba"...), sur le meme principe que Formule.
+// =============================================================================
+model TypeCours {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  nom         String
+  description String?
+
+  // Pour l'affichage calendrier (une pastille de couleur par type).
+  couleur String? @default("#FF6B35")
+
+  // Valeurs par defaut proposees a la creation d'une seance ; modifiables au
+  // cas par cas sur la seance elle-meme (SessionCours.dureeMinutes/capacite).
+  dureeMinutes   Int @default(60)
+  capaciteDefaut Int @default(15)
+
+  // Un type utilise par des seances passees ne se supprime pas, il s'archive
+  // (§9, meme logique que Formule).
+  actif Boolean @default(true)
+  ordre Int     @default(0)
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  sessions SessionCours[]
+
+  @@unique([gymId, nom])
+  @@index([gymId, actif])
+  @@map("types_cours")
+}
+
+// =============================================================================
+// SessionCours — une seance planifiee a une date et une heure precises.
+//
+// Contrairement a Abonnement, on ne fige PAS de photographie du nom du type de
+// cours ou du coach ici : la photographie du §9 existe pour proteger un
+// engagement financier (le prix paye par l'adherent). Renommer un TypeCours ou
+// un Coach n'a aucune consequence comptable, la seance peut donc pointer en
+// direct vers eux.
+//
+// placesReservees est un compteur a verrou optimiste (meme pattern que
+// LienInscription.usages, §6) : lu, verifie localement, puis incremente via un
+// updateMany conditionne sur la valeur lue. Une simple transaction Prisma ne
+// suffit pas a proteger un compteur sous acces concurrent (deux inscriptions
+// simultanees sur la derniere place).
+// =============================================================================
+model SessionCours {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  typeCoursId String
+  typeCours   TypeCours @relation(fields: [typeCoursId], references: [id], onDelete: Restrict)
+
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Restrict)
+
+  debutLe      DateTime
+  dureeMinutes Int // copie depuis TypeCours.dureeMinutes a la creation, modifiable au cas par cas
+
+  capacite        Int // copie depuis TypeCours.capaciteDefaut a la creation, modifiable au cas par cas
+  placesReservees Int @default(0)
+
+  statut StatutSessionCours @default(PLANIFIEE)
+
+  annuleLe   DateTime?
+  motifAnnul String?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  reservations Reservation[]
+
+  // Requete la plus frequente : "le planning du jour dans cette salle".
+  @@index([gymId, debutLe])
+  @@index([gymId, coachId])
+  @@index([gymId, typeCoursId])
+  @@map("sessions_cours")
+}
+
+// =============================================================================
+// Reservation — un adherent inscrit sur une SessionCours.
+//
+// Lot 4, premiere marche (decision du 20/08) : c'est le staff qui inscrit
+// l'adherent depuis le back-office, pas de reservation en libre-service depuis
+// l'espace adherent pour l'instant.
+// =============================================================================
+model Reservation {
+  id String @id @default(cuid())
+
+  gymId String
+  gym   Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  sessionCoursId String
+  sessionCours   SessionCours @relation(fields: [sessionCoursId], references: [id], onDelete: Restrict)
+
+  adherentId String
+  adherent   Adherent @relation(fields: [adherentId], references: [id], onDelete: Restrict)
+
+  statut StatutReservation @default(CONFIRMEE)
+
+  annuleLe   DateTime?
+  motifAnnul String?
+
+  creeLe DateTime @default(now())
+  majLe  DateTime @updatedAt
+
+  // Empeche un double clic de creer deux inscriptions du meme adherent sur la
+  // meme seance.
+  @@unique([sessionCoursId, adherentId])
+  @@index([gymId, adherentId])
+  @@index([gymId, sessionCoursId])
+  @@map("reservations")
 }

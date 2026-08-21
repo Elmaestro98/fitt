@@ -32,7 +32,7 @@ export const NAVIGATION: EntreeNavigation[] = [
   { libelle: "Formules", href: "/formules", icone: Tag },
   { libelle: "Paiements", href: "/paiements", icone: Wallet },
   { libelle: "Pointage", href: "/pointage", icone: UserCheck },
-  { libelle: "Cours & coachs", href: "/cours", icone: Dumbbell, lot: 4 },
+  { libelle: "Cours & coachs", href: "/cours", icone: Dumbbell },
   { libelle: "Rapports", href: "/rapports", icone: BarChart3 },
 ];
 

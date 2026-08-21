@@ -1,6 +1,7 @@
 import {
   CalendarCheck,
   CreditCard,
+  Dumbbell,
   LayoutDashboard,
   ScanLine,
   UserRound,
@@ -21,6 +22,7 @@ export type EntreeEspace = {
 export const NAVIGATION_ESPACE: EntreeEspace[] = [
   { libelle: "Mon espace", href: "/espace", icone: LayoutDashboard },
   { libelle: "Mes abonnements", href: "/espace/abonnements", icone: CreditCard },
+  { libelle: "Mes cours", href: "/espace/cours", icone: Dumbbell },
   { libelle: "Mes seances", href: "/espace/seances", icone: CalendarCheck },
   { libelle: "Signaler ma presence", href: "/espace/pointer", icone: ScanLine },
 ];

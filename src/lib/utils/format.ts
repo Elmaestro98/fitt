@@ -42,6 +42,15 @@ export function formatDateHeure(date: Date): string {
   }).format(date);
 }
 
+/** "14:32" — pour le planning des cours. */
+export function formatHeure(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: FUSEAU,
+  }).format(date);
+}
+
 /** Numero d'adherent visible : 42 -> "FITT-0042" (CLAUDE.md §8). */
 export function formatNumeroAdherent(sequence: number): string {
   return `FITT-${String(sequence).padStart(4, "0")}`;

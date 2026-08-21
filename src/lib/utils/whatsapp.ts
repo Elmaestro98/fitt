@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/utils/format";
+import { formatDate, formatDateLongue, formatHeure } from "@/lib/utils/format";
 
 // Rappels WhatsApp (Lot 2, premiere marche).
 //
@@ -34,4 +34,23 @@ export function messageRelanceAbonnement(
   return dejaEchu
     ? `Bonjour ${prenom}, votre abonnement ${nomFormule} chez ${nomSalle} est arrive a echeance le ${date}. N'hesitez pas a passer renouveler votre abonnement.`
     : `Bonjour ${prenom}, votre abonnement ${nomFormule} chez ${nomSalle} arrive a echeance le ${date}. Pensez a renouveler pour continuer a en profiter !`;
+}
+
+/**
+ * Rappel d'une inscription a une seance de cours (Lot 4).
+ *
+ * Meme principe que messageRelanceAbonnement : pas d'envoi automatique, le
+ * staff relit et envoie lui-meme. C'est la reponse au constat qu'un adherent
+ * inscrit par le staff n'est prevenu par aucun autre moyen — ni notification,
+ * ni affichage dans son espace avant qu'il ne s'y connecte lui-meme.
+ */
+export function messageRappelSeance(
+  prenom: string,
+  nomTypeCours: string,
+  nomSalle: string,
+  debutLe: Date,
+): string {
+  const date = formatDateLongue(debutLe);
+  const heure = formatHeure(debutLe);
+  return `Bonjour ${prenom}, petit rappel : vous etes inscrit(e) au cours ${nomTypeCours} chez ${nomSalle} le ${date} a ${heure}. A bientot !`;
 }

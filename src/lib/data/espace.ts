@@ -121,6 +121,40 @@ export async function abonnementsEspace() {
   });
 }
 
+/**
+ * Les cours a venir auxquels l'adherent est inscrit (Lot 4).
+ *
+ * Seules les seances encore PLANIFIEE et a venir : une seance passee ou
+ * annulee n'a plus d'interet a apparaitre dans "mes cours" — l'historique des
+ * venues reelles vit deja dans seancesEspace (le pointage), qui est autre
+ * chose (voir le commentaire en tete de fichier).
+ */
+export async function mesCoursEspace() {
+  const { gymId, adherentId } = await exigerSessionAdherent();
+
+  return prisma.reservation.findMany({
+    where: {
+      gymId,
+      adherentId,
+      statut: "CONFIRMEE",
+      sessionCours: { statut: "PLANIFIEE", debutLe: { gte: new Date() } },
+    },
+    orderBy: { sessionCours: { debutLe: "asc" } },
+    select: {
+      id: true,
+      sessionCours: {
+        select: {
+          id: true,
+          debutLe: true,
+          dureeMinutes: true,
+          typeCours: { select: { nom: true, couleur: true } },
+          coach: { select: { prenom: true, nom: true } },
+        },
+      },
+    },
+  });
+}
+
 /* --- Auto-pointage --------------------------------------------------------- */
 
 /** Meme fenetre que la borne : deux passages a moins de 2 minutes n'en font

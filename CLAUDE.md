@@ -196,6 +196,20 @@ renvoie la même erreur sur la même file grandissante. Corrigé le 19/08/2026 :
 toute future file locale rejouée en bloc (mobile hors ligne, import...) :
 toujours découper côté client sous la limite serveur, jamais l'inverse.
 
+**Un `contains: ""` dans un `OR` Prisma annule silencieusement tout le filtre**
+`listerAdherents` construisait son critère téléphone avec
+`termes.replace(/\D/g, "")` : sur une recherche sans aucun chiffre ("Moussa"),
+ça donne `contains: ""`. Une chaîne vide est contenue dans n'importe quel
+texte, donc cette branche du `OR` est toujours vraie — elle annule les autres
+critères (nom, prénom, numéro) et la recherche renvoie tous les adhérents de
+la salle au lieu de filtrer. Trouvé le 20/08/2026 en testant la réservation
+de séances (Lot 4), qui réutilise `listerAdherents`. Corrigé : la clause
+téléphone n'est ajoutée au `OR` que si la chaîne de chiffres est non vide.
+Même risque partout où un `contains`/`in` est construit à partir d'une valeur
+dérivée (regex, slice...) plutôt que de la saisie brute : vérifier qu'une
+transformation ne peut pas produire une chaîne vide qui rendrait la condition
+toujours vraie.
+
 ---
 
 ## 7. Conventions de code
@@ -349,7 +363,12 @@ utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visi
   - [x] Relances impayés — bouton "Rappel WhatsApp" (lien wa.me, message pre-rempli) sur la liste des abonnements et sur la fiche adherent, des 7 jours avant echeance et sur les abonnements expires. Valide le 19/08/2026
   - [ ] Notifications WhatsApp automatiques — **en pause le 19/08/2026** : verification Meta Business, templates approuves, webhook et cout par message sont un chantier lourd pour un gain marginal face au bouton "Rappel WhatsApp" deja en place. A reprendre si une salle cliente le demande explicitement.
 - [x] Lot 3 — espace adhérent : code-complet et **validé par test le 19/08/2026** (activation par lien, connexion, accueil, séances, abonnements, profil, pointage) — construit en avance sur le Lot 2
-- [ ] Lot 4 — cours et coachs
+- [x] Lot 4 — cours et coachs : code-complet et **validé par test le 20/08/2026** (coachs, types de cours, planning, réservation avec verrou de capacité optimiste, annulation de séance, modification de séance) :
+  - [x] Coachs — fiche simple (pas de compte Clerk), liste, création, modification, archivage
+  - [x] Types de cours — catalogue (nom, couleur, durée/capacité par défaut), liste, création, modification, archivage
+  - [x] Séances — planning groupé par jour, création, modification (capacité bornée par les places déjà réservées), annulation avec motif (§9, jamais de suppression)
+  - [x] Réservations — inscription/désinscription d'un adhérent depuis la fiche de la séance, verrou optimiste sur `placesReservees` (même pattern que `LienInscription.usages`, §6), réinscription après désinscription (upsert sur la ligne existante plutôt que doublon)
+  - Décisions du 20/08/2026 : pas de compte coach, séances créées une par une (pas de récurrence), réservation faite par le staff uniquement (pas de self-service adhérent) — à reprendre plus tard si besoin
 - [~] Lot 5 — rapports et back-office Super Admin :
   - [x] Rapports (`/rapports`) — encaissements reels par mois, repartition par methode de paiement, taux de renouvellement (delai de grace 14 j), top adherents assidus, filtre de periode (3/6/12/24 mois) et export CSV (`/api/rapports/export`, premiere route API du projet — GET, hors Server Actions car un telechargement a besoin d'un en-tete Content-Disposition). Valide le 19/08/2026
   - [ ] Back-office Super Admin (vue AFRICATECHNOLOGIE sur l'ensemble des salles clientes) — non commence

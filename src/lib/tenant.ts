@@ -14,6 +14,7 @@
 // dans le navigateur.
 import "server-only";
 
+import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import type { GymModel } from "@/generated/prisma/models";
@@ -61,7 +62,14 @@ export class SalleDesactiveeError extends Error {
   }
 }
 
-export async function getTenantContext(): Promise<ContexteTenant> {
+// cache() de React : une page appelle getTenantContext() une fois par
+// fonction de lib/data/* qui en a besoin, parfois cinq ou six fois. Sans ce
+// cache, chacun de ces appels refaisait un aller-retour vers la base
+// (elle-meme distante, chez Supabase) pour relire exactement la meme ligne
+// `gyms`. cache() memorise le resultat pour la duree d'un seul rendu ou d'une
+// seule Server Action : le premier appel interroge la base, les suivants
+// reutilisent la reponse.
+export const getTenantContext = cache(async (): Promise<ContexteTenant> => {
   // 1. Qui est connecte ? Lecture du cookie de session signe par Clerk.
   const { userId, orgId, orgRole } = await auth();
 
@@ -78,4 +86,4 @@ export async function getTenantContext(): Promise<ContexteTenant> {
   if (!gym.actif) throw new SalleDesactiveeError();
 
   return { gymId: gym.id, gym, userId, orgRole: orgRole ?? null };
-}
+});
