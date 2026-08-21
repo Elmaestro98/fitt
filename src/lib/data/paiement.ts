@@ -8,6 +8,7 @@ import "server-only";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
+import { getSuperAdminContext } from "@/lib/super-admin";
 import type { MethodePaiement } from "@/generated/prisma/enums";
 
 export const METHODES = ["ESPECES", "WAVE", "ORANGE_MONEY"] as const;
@@ -319,5 +320,85 @@ export async function statistiquesPaiements() {
     parMethode: Object.fromEntries(
       parMethode.map((l) => [l.methode, l._sum.montant ?? 0]),
     ) as Partial<Record<MethodePaiement, number>>,
+  };
+}
+
+/* =============================================================================
+   SUPER ADMIN — vue AFRICATECHNOLOGIE, agregat toutes salles confondues.
+
+   Meme exception assumee que dans gym.ts : aucun gymId dans le where, parce
+   qu'ici lire TOUTES les salles a la fois est precisement le but (§3).
+   ============================================================================= */
+
+function debutDuMoisUTC(decalageMois = 0) {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + decalageMois, 1));
+}
+
+/** "2026-08" -> le 1er aout 2026 UTC. Retombe sur le mois en cours si le
+ *  format est absent ou invalide — jamais transmis tel quel a Prisma. */
+function debutMoisCible(moisCible?: string): Date {
+  if (moisCible && /^\d{4}-\d{2}$/.test(moisCible)) {
+    const [annee, mois] = moisCible.split("-").map(Number);
+    // mois-1 : l'utilisateur compte de 1 a 12, Date.UTC de 0 a 11.
+    return new Date(Date.UTC(annee, mois - 1, 1));
+  }
+  return debutDuMoisUTC(0);
+}
+
+/** "2026-08" pour le mois en cours, servant de valeur par defaut au filtre. */
+export function moisCourantISO(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Encaissements nets (ENCAISSEMENT + ANNULATION, qui se neutralisent d'eux-
+ * memes — meme convention que rapport.ts) du mois demande, toutes salles
+ * confondues, avec la repartition par salle et la comparaison au mois
+ * precedent celui-la (pas au mois en cours : comparer un mois choisi a
+ * "maintenant" n'aurait aucun sens).
+ */
+export async function financeGlobale(moisCible?: string) {
+  await getSuperAdminContext();
+
+  const debut = debutMoisCible(moisCible);
+  const debutSuivant = debutDuMoisUTC(0);
+  debutSuivant.setUTCFullYear(debut.getUTCFullYear());
+  debutSuivant.setUTCMonth(debut.getUTCMonth() + 1);
+  const debutPrecedent = new Date(debut);
+  debutPrecedent.setUTCMonth(debut.getUTCMonth() - 1);
+
+  const [parSalleBrut, precedent] = await Promise.all([
+    prisma.paiement.groupBy({
+      by: ["gymId"],
+      where: { encaisseLe: { gte: debut, lt: debutSuivant } },
+      _sum: { montant: true },
+    }),
+    prisma.paiement.aggregate({
+      where: { encaisseLe: { gte: debutPrecedent, lt: debut } },
+      _sum: { montant: true },
+    }),
+  ]);
+
+  const gyms = await prisma.gym.findMany({
+    where: { id: { in: parSalleBrut.map((l) => l.gymId) } },
+    select: { id: true, nom: true },
+  });
+  const nomParId = new Map(gyms.map((g) => [g.id, g.nom]));
+
+  const parSalle = parSalleBrut
+    .map((l) => ({
+      gymId: l.gymId,
+      nom: nomParId.get(l.gymId) ?? "Salle inconnue",
+      montant: l._sum.montant ?? 0,
+    }))
+    .sort((a, b) => b.montant - a.montant);
+
+  return {
+    mois: `${debut.getUTCFullYear()}-${String(debut.getUTCMonth() + 1).padStart(2, "0")}`,
+    total: parSalle.reduce((somme, l) => somme + l.montant, 0),
+    totalMoisPrecedent: precedent._sum.montant ?? 0,
+    parSalle,
   };
 }

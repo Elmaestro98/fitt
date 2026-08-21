@@ -56,6 +56,24 @@
 
   /* --- Typographie -------------------------------------------------------- */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Console Super Admin (/admin) ---------------------------------------
+     Palette distincte et volontaire, PAS une variation du theme ci-dessus :
+     /admin est un outil interne AFRICATECHNOLOGIE, jamais vu par une salle
+     cliente ni un adherent. Un fond sombre le signale au premier coup d'oeil
+     comme un espace different du produit — la salle des machines, pas la
+     vitrine. L'orange de marque reste present : c'est leur produit qu'ils
+     supervisent. */
+  --color-admin-bg: #0b0d10;
+  --color-admin-surface: #14171b;
+  --color-admin-surface-hover: #1b1f24;
+  --color-admin-line: #23272d;
+  --color-admin-text: #e8eaed;
+  --color-admin-muted: #8a9099;
+  --color-admin-accent: #ff6b35;
+  --color-admin-success: #3ddc97;
+  --color-admin-danger: #ff6b6b;
+  --font-mono-admin: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 /* ===========================================================================
@@ -176,5 +194,27 @@ body {
   a[role="button"],
   [role="tab"] {
     min-height: 44px;
+  }
+}
+
+/* Pastille "active" de la console /admin : un leger pouls, pas une alerte.
+   Coupe pour qui demande moins de mouvement. */
+@keyframes pouls-admin {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pouls-admin {
+  animation: pouls-admin 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pouls-admin {
+    animation: none;
   }
 }

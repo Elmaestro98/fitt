@@ -92,6 +92,13 @@ model Gym {
 
   actif Boolean @default(true)
 
+  // Date de la PREMIERE activation par le Super Admin. Distingue deux etats
+  // qui se ressemblent en base (actif=false) mais pas du tout dans la
+  // realite : une salle jamais activee (activeeLe null) vs une salle
+  // suspendue apres avoir tourne normalement (activeeLe renseigne). Ecrit
+  // une seule fois, jamais efface — une suspension n'annule pas l'historique.
+  activeeLe DateTime?
+
   // Compteur du numero d'adherent, PAR SALLE (CLAUDE.md §8).
   // On l'incremente dans une transaction a chaque creation. Il ne redescend
   // jamais : un numero libere n'est pas reattribue, meme apres archivage.
