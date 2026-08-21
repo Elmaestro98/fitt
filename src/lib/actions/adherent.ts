@@ -14,6 +14,7 @@ import {
   creerAdherent,
   importerAdherents,
   modifierAdherent,
+  rechercheRapideAdherents,
   schemaNouvelAdherent,
   telephonesExistants,
   type NouvelAdherent,
@@ -338,4 +339,45 @@ export async function actionConfirmerImportCSV(
 
   revalidatePath("/adherents");
   redirect("/adherents");
+}
+
+/* --- Recherche globale de la barre haute ---------------------------------- */
+
+export type ResultatRecherche = {
+  id: string;
+  numero: string;
+  prenom: string;
+  nom: string;
+  telephone: string;
+  photoUrl: string | null;
+  statut: string;
+};
+
+export type EtatRecherche = {
+  resultats: ResultatRecherche[];
+  /** Total reel en base : c'est lui qui declenche le lien "voir tout", pas
+   *  la longueur du tableau, qui est plafonnee. */
+  total: number;
+};
+
+/**
+ * Suggestions de la barre de recherche du back-office.
+ *
+ * Lecture seule, mais exposee en Server Action : la barre haute est un
+ * composant client (elle a un etat de saisie), elle ne peut donc pas appeler
+ * la couche data directement. Le tenant est resolu cote serveur comme
+ * partout ailleurs — aucun gymId ne transite par le navigateur (§3).
+ */
+export async function actionRechercherAdherents(
+  terme: string,
+): Promise<EtatRecherche> {
+  if (typeof terme !== "string") return { resultats: [], total: 0 };
+
+  try {
+    return await rechercheRapideAdherents(terme);
+  } catch {
+    // Session expiree, salle desactivee, reseau : la barre se tait plutot que
+    // d'afficher une erreur par-dessus le travail en cours.
+    return { resultats: [], total: 0 };
+  }
 }

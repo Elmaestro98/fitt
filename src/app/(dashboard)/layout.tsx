@@ -14,6 +14,7 @@
 import { Building2, Clock3, ShieldOff } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardBody } from "@/components/ui/card";
+import { notificationsStaff, type Notification } from "@/lib/data/notifications";
 import {
   AucuneSalleActiveError,
   getTenantContext,
@@ -25,14 +26,19 @@ export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   let contenu = children;
+  // Volontairement vides en cas d'echec : sans salle active, il n'y a aucune
+  // donnee a lire, et la coquille doit quand meme s'afficher pour donner
+  // acces au selecteur d'organisation.
+  let notifications: Notification[] = [];
 
   try {
     await getTenantContext();
+    ({ notifications } = await notificationsStaff());
   } catch (erreur) {
     contenu = <EcranBloque erreur={erreur} />;
   }
 
-  return <AppShell>{contenu}</AppShell>;
+  return <AppShell notifications={notifications}>{contenu}</AppShell>;
 }
 
 function EcranBloque({ erreur }: { erreur: unknown }) {

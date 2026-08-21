@@ -23,6 +23,37 @@ export type FiltresAdherents = {
   statut?: StatutAdherent;
 };
 
+/**
+ * Le critere "ce texte correspond a un adherent", partage par la liste
+ * paginee et la recherche globale de la barre haute.
+ *
+ * /!\ Ecrit UNE fois et reutilise : c'est ici que se logeait le bug du
+ * `contains: ""` (§6), et le dupliquer serait le meilleur moyen de le
+ * reintroduire ailleurs.
+ *
+ * Renvoie un objet vide quand il n'y a rien a chercher, pour pouvoir
+ * l'etaler dans un `where` sans condition a l'appel.
+ */
+function critereRecherche(recherche?: string) {
+  const termes = recherche?.trim();
+  if (!termes) return {};
+
+  const chiffres = termes.replace(/\D/g, "");
+
+  return {
+    OR: [
+      { prenom: { contains: termes, mode: "insensitive" as const } },
+      { nom: { contains: termes, mode: "insensitive" as const } },
+      { numero: { contains: termes, mode: "insensitive" as const } },
+      // "contains: ''" correspondrait a N'IMPORTE QUEL telephone : une
+      // recherche sans aucun chiffre ("Moussa") ne doit pas ajouter ce
+      // critere, sinon il rend le OR entier toujours vrai et annule le
+      // filtre par nom.
+      ...(chiffres ? [{ telephone: { contains: chiffres } }] : []),
+    ],
+  };
+}
+
 export async function listerAdherents({
   page = 1,
   recherche,
@@ -30,28 +61,12 @@ export async function listerAdherents({
 }: FiltresAdherents = {}) {
   const { gymId } = await getTenantContext();
 
-  const termes = recherche?.trim();
-  const chiffres = termes?.replace(/\D/g, "");
-
   // Le gymId est toujours present dans le where. Les autres criteres
   // viennent s'ajouter, jamais le remplacer.
   const where = {
     gymId,
     ...(statut ? { statut } : {}),
-    ...(termes
-      ? {
-          OR: [
-            { prenom: { contains: termes, mode: "insensitive" as const } },
-            { nom: { contains: termes, mode: "insensitive" as const } },
-            { numero: { contains: termes, mode: "insensitive" as const } },
-            // "contains: ''" correspondrait a N'IMPORTE QUEL telephone : une
-            // recherche sans aucun chiffre ("Moussa") ne doit pas ajouter ce
-            // critere, sinon il rend le OR entier toujours vrai et annule le
-            // filtre par nom.
-            ...(chiffres ? [{ telephone: { contains: chiffres } }] : []),
-          ],
-        }
-      : {}),
+    ...critereRecherche(recherche),
   };
 
   // Une seule aller-retour reseau pour les deux requetes.
@@ -71,6 +86,51 @@ export async function listerAdherents({
     page,
     pages: Math.max(1, Math.ceil(total / PAR_PAGE)),
   };
+}
+
+/** Nombre de suggestions de la barre haute. Volontairement court : c'est une
+ *  liste deroulante qu'on parcourt d'un coup d'oeil, pas un resultat de
+ *  recherche. Au-dela, le lien "voir tous les resultats" renvoie vers la page
+ *  Adherents, qui pagine. */
+const SUGGESTIONS_MAX = 6;
+
+/**
+ * Recherche pour la barre haute du back-office.
+ *
+ * Distincte de listerAdherents : elle ne pagine pas, ne compte pas, et ne
+ * ramene que les quelques champs affiches dans la liste deroulante. A
+ * l'accueil, quelqu'un se presente et le staff tape son nom — la reponse doit
+ * arriver avant qu'il ait fini de taper.
+ */
+export async function rechercheRapideAdherents(recherche: string) {
+  const { gymId } = await getTenantContext();
+
+  const termes = recherche.trim();
+  // Une lettre unique renverrait la moitie du fichier pour rien : la barre
+  // n'interroge la base qu'a partir de deux caracteres.
+  if (termes.length < 2) return { resultats: [], total: 0 };
+
+  const where = { gymId, ...critereRecherche(termes) };
+
+  const [resultats, total] = await Promise.all([
+    prisma.adherent.findMany({
+      where,
+      take: SUGGESTIONS_MAX,
+      orderBy: { creeLe: "desc" },
+      select: {
+        id: true,
+        numero: true,
+        prenom: true,
+        nom: true,
+        telephone: true,
+        photoUrl: true,
+        statut: true,
+      },
+    }),
+    prisma.adherent.count({ where }),
+  ]);
+
+  return { resultats, total };
 }
 
 export async function compterParStatut() {
