@@ -12,6 +12,10 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
+import {
+  compterAdherentsQuiDecrochent,
+  JOURS_DECROCHAGE,
+} from "@/lib/data/decrochage";
 
 /** Fenetre d'alerte sur les echeances. Sept jours : assez tot pour relancer,
  *  assez proche pour que ce soit encore une urgence. Le tableau de bord, lui,
@@ -37,7 +41,7 @@ export async function notificationsStaff(): Promise<{
   const maintenant = new Date();
   const limite = new Date(maintenant.getTime() + JOURS_ECHEANCE * JOUR_MS);
 
-  const [expirations, enAttente, commandes] = await Promise.all([
+  const [expirations, enAttente, commandes, decrochages] = await Promise.all([
     // Abonnements qui s'achevent dans la semaine : la relance se joue
     // maintenant, pas le jour de l'expiration.
     prisma.abonnement.count({
@@ -52,6 +56,10 @@ export async function notificationsStaff(): Promise<{
     prisma.commande.count({
       where: { gymId, statut: { in: ["EN_ATTENTE", "PRETE"] } },
     }),
+    // Les adherents qui paient sans venir. Contrairement aux trois autres,
+    // ce n'est pas un simple count : le croisement se fait en memoire (voir
+    // data/decrochage.ts).
+    compterAdherentsQuiDecrochent(),
   ]);
 
   const notifications: Notification[] = [];
@@ -78,6 +86,19 @@ export async function notificationsStaff(): Promise<{
           : `1 abonnement expire sous ${JOURS_ECHEANCE} jours`,
       nombre: expirations,
       href: "/abonnements",
+      ton: "alerte",
+    });
+  }
+
+  if (decrochages > 0) {
+    notifications.push({
+      cle: "decrochages",
+      libelle:
+        decrochages > 1
+          ? `${decrochages} adherents ne sont plus venus depuis ${JOURS_DECROCHAGE / 7} semaines`
+          : `1 adherent n'est plus venu depuis ${JOURS_DECROCHAGE / 7} semaines`,
+      nombre: decrochages,
+      href: "/tableau-de-bord",
       ton: "alerte",
     });
   }

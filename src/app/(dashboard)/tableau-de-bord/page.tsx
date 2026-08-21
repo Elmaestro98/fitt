@@ -20,7 +20,9 @@ import { GrapheFrequentation } from "@/components/tableau-bord/graphe-frequentat
 import { GrapheSouscriptions } from "@/components/tableau-bord/graphe-souscriptions";
 import { RepartitionFormules } from "@/components/tableau-bord/repartition-formules";
 import { TableExpirations } from "@/components/tableau-bord/table-expirations";
+import { AdherentsQuiDecrochent } from "@/components/tableau-bord/adherents-qui-decrochent";
 import { synchroniserExpirations } from "@/lib/data/abonnement";
+import { adherentsQuiDecrochent } from "@/lib/data/decrochage";
 import {
   abonnementsExpirantBientot,
   evolutionSouscriptions,
@@ -75,14 +77,21 @@ export default async function PageTableauDeBord() {
   // afficheraient comme actifs des abonnements termines hier.
   await synchroniserExpirations();
 
-  const [stats, evolution, repartition, expirations, frequentation] =
-    await Promise.all([
-      statistiquesTableauDeBord(),
-      evolutionSouscriptions(),
-      repartitionFormules(),
-      abonnementsExpirantBientot(),
-      frequentationHebdomadaire(),
-    ]);
+  const [
+    stats,
+    evolution,
+    repartition,
+    expirations,
+    frequentation,
+    decrochages,
+  ] = await Promise.all([
+    statistiquesTableauDeBord(),
+    evolutionSouscriptions(),
+    repartitionFormules(),
+    abonnementsExpirantBientot(),
+    frequentationHebdomadaire(),
+    adherentsQuiDecrochent(),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -192,6 +201,16 @@ export default async function PageTableauDeBord() {
           <TableExpirations lignes={expirations} />
         )}
       </Card>
+
+      {/* Juste apres les echeances, et c'est voulu : les deux repondent a
+          "qui faut-il relancer ?". La difference, c'est que celle-ci ne se
+          voit nulle part ailleurs — un adherent qui paie sans venir n'apparait
+          dans aucun compteur tant qu'il n'a pas cesse de payer. */}
+      <AdherentsQuiDecrochent
+        adherents={decrochages.slice(0, 6)}
+        total={decrochages.length}
+        nomSalle={gym.nom}
+      />
 
       <Card>
         <CardHeader

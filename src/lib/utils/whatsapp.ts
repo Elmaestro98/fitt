@@ -54,3 +54,22 @@ export function messageRappelSeance(
   const heure = formatHeure(debutLe);
   return `Bonjour ${prenom}, petit rappel : vous etes inscrit(e) au cours ${nomTypeCours} chez ${nomSalle} le ${date} a ${heure}. A bientot !`;
 }
+
+/**
+ * Message aux adherents qui ne viennent plus, alors que leur abonnement
+ * court toujours.
+ *
+ * /!\ Ton volontairement chaleureux et SANS reproche. Ces personnes paient :
+ * leur signaler leur absence comme un manquement est le meilleur moyen de
+ * les faire partir pour de bon. On ouvre la porte, on ne fait pas les
+ * comptes — et on ne donne aucun conseil sante ou sportif (§9).
+ */
+export function messageReprise(
+  prenom: string,
+  nomSalle: string,
+  jamaisVenu: boolean,
+): string {
+  return jamaisVenu
+    ? `Bonjour ${prenom}, on ne vous a pas encore vu(e) chez ${nomSalle} ! Votre abonnement est actif, passez quand vous voulez — on vous fera visiter et on vous installera.`
+    : `Bonjour ${prenom}, on ne vous voit plus chez ${nomSalle} et on tenait a prendre de vos nouvelles. Votre abonnement est toujours actif : au plaisir de vous revoir bientot !`;
+}
