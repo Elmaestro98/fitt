@@ -96,12 +96,27 @@
   --duree-moyenne: 320ms; /* entree d'une carte, d'une modale */
   --duree-longue: 480ms; /* entree d'une page complete */
 
-  /* Exposees comme classes Tailwind : animate-apparition, animate-surgir... */
-  --animate-apparition: apparition var(--duree-moyenne) var(--ease-sortie) both;
-  --animate-surgir: surgir var(--duree-courte) var(--ease-ressort) both;
-  --animate-remonter: remonter var(--duree-courte) var(--ease-sortie) both;
-  --animate-voile: voile var(--duree-courte) var(--ease-sortie) both;
-  --animate-glisser-droite: glisser-droite var(--duree-courte) var(--ease-sortie) both;
+  /* Exposees comme classes Tailwind : animate-apparition, animate-surgir...
+
+     /!\ fill-mode = backwards, JAMAIS both. Avec "both", l'element GARDE la
+     derniere image de l'animation une fois celle-ci terminee. Or un
+     "transform: none" retenu par une animation ne calcule pas le mot-cle
+     none mais la matrice identite, matrix(1, 0, 0, 1, 0, 0) — et TOUTE
+     valeur de transform autre que none fait de l'element le bloc conteneur
+     de ses descendants en position: fixed.
+     Resultat observe le 22/08/2026 : la modale d'encaissement, en
+     fixed inset-0, ne couvrait plus la fenetre mais la zone de contenu du
+     <main class="animate-apparition">, et se centrait dans la hauteur
+     TOTALE de la page defilante — donc largement hors ecran.
+     "backwards" applique l'image de depart avant le demarrage (indispensable
+     aux delais de .cascade) puis rend la main : aucune transform residuelle.
+     L'etat final de chacune de ces animations est deja l'etat naturel de
+     l'element, il n'y a donc rien a retenir. */
+  --animate-apparition: apparition var(--duree-moyenne) var(--ease-sortie) backwards;
+  --animate-surgir: surgir var(--duree-courte) var(--ease-ressort) backwards;
+  --animate-remonter: remonter var(--duree-courte) var(--ease-sortie) backwards;
+  --animate-voile: voile var(--duree-courte) var(--ease-sortie) backwards;
+  --animate-glisser-droite: glisser-droite var(--duree-courte) var(--ease-sortie) backwards;
   --animate-chatoiement: chatoiement 1.6s linear infinite;
   --animate-pouls-doux: pouls-doux 2.4s var(--ease-sortie) infinite;
 
@@ -398,7 +413,7 @@ table,
    liste de 40 adherents qui se deroulerait ligne par ligne mettrait deux
    secondes a s'afficher, ce qui n'est plus une animation mais une attente. */
 .cascade > * {
-  animation: apparition var(--duree-moyenne) var(--ease-sortie) both;
+  animation: apparition var(--duree-moyenne) var(--ease-sortie) backwards;
 }
 .cascade > *:nth-child(1) { animation-delay: 0ms; }
 .cascade > *:nth-child(2) { animation-delay: 45ms; }
