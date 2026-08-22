@@ -268,20 +268,46 @@ export async function activerSalleParEmail(email: string) {
     where: { clerkOrgId: { in: orgIds } },
   });
 
-  if (salles.length === 0) {
-    throw new Error(
-      "Aucune salle Fitt trouvee pour ce compte (organisation pas encore initialisee)",
-    );
-  }
   if (salles.length > 1) {
     throw new Error(
       `Ce compte appartient a plusieurs salles (${salles.map((s) => s.nom).join(", ")}) — utilisez le tableau ci-dessous`,
     );
   }
 
-  const salle = salles[0];
-  await activerSalle(salle.id);
-  return salle;
+  if (salles.length === 1) {
+    await activerSalle(salles[0].id);
+    return { salle: salles[0], creee: false };
+  }
+
+  // --- Aucune salle en base, mais l'organisation existe dans Clerk ---------
+  //
+  // Cas courant : l'organisation a ete creee dans le tableau de bord Clerk,
+  // ou son gerant ne s'est pas encore connecte. Fitt n'enregistre une salle
+  // qu'au premier chargement de l'application (synchroniserSalleDepuisClerk),
+  // ce qui produisait un blocage circulaire : le Super Admin ne pouvait pas
+  // activer tant que le gerant ne s'etait pas connecte, et le gerant tombait
+  // sur "Acces non active" sans comprendre quoi faire.
+  //
+  // On cree donc la salle ici, deja activee. Le nom vient de Clerk, jamais
+  // d'une saisie : c'est la meme source que synchroniserSalleDepuisClerk.
+  if (adhesions.length > 1) {
+    const noms = adhesions.map((a) => a.organization.name).join(", ");
+    throw new Error(
+      `Ce compte appartient a plusieurs organisations (${noms}) — demandez au gerant de se connecter une fois, la salle apparaitra dans le tableau`,
+    );
+  }
+
+  const organisation = adhesions[0].organization;
+  const salle = await prisma.gym.create({
+    data: {
+      clerkOrgId: organisation.id,
+      nom: organisation.name,
+      actif: true,
+      activeeLe: new Date(),
+    },
+  });
+
+  return { salle, creee: true };
 }
 
 /**

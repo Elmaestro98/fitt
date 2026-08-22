@@ -26,9 +26,16 @@ export async function actionActiverSalleParEmail(
   }
 
   try {
-    const salle = await activerSalleParEmail(resultat.data);
+    const { salle, creee } = await activerSalleParEmail(resultat.data);
     revalidatePath("/admin");
-    return { succes: `${salle.nom} activee` };
+    // On distingue les deux cas : "creee" signale au Super Admin que cette
+    // salle n'existait pas encore dans Fitt, et qu'il vient donc de
+    // l'enregistrer en plus de lui ouvrir l'acces.
+    return {
+      succes: creee
+        ? `${salle.nom} enregistree et activee`
+        : `${salle.nom} activee`,
+    };
   } catch (erreur) {
     return { erreur: messageErreur(erreur, "Activation echouee") };
   }
