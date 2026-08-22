@@ -51,6 +51,10 @@ export function PanneauEssai({ salle }: { salle: Salle }) {
               className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-admin-line px-3 text-sm text-admin-text hover:bg-admin-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent"
             >
               <CalendarPlus className="size-4" />
+              {/* "Prolonger" quand un essai court deja : "+7 jours" sur une
+                  salle qui en a encore 10 pourrait laisser croire qu'on la
+                  ramene a 7. */}
+              {salle.essaiJusquau && !salle.abonnee ? "+" : ""}
               {jours} jours
             </button>
           </form>
@@ -81,7 +85,7 @@ export function PanneauEssai({ salle }: { salle: Salle }) {
               className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-3 text-sm text-admin-muted hover:bg-admin-surface-hover hover:text-admin-text focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent"
             >
               <InfiniteIcon className="size-4" />
-              Sans limite
+              Supprimer l&apos;essai
             </button>
           </form>
         )}

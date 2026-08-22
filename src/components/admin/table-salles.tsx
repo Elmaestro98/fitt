@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import { BoutonToggleSalle } from "@/components/admin/bouton-toggle-salle";
+import { MenuEssai } from "@/components/admin/menu-essai";
 import { Input } from "@/components/shadcn/input";
 import { Button } from "@/components/shadcn/button";
 import {
@@ -120,7 +121,7 @@ export function TableSalles({ salles }: { salles: Salle[] }) {
                 Creee le
               </ThTriable>
               <Th>Statut</Th>
-              <TableHead className="w-32" />
+              <TableHead className="w-56" />
             </TableRow>
           </TableHeader>
           <TableBody className="[&_tr:last-child]:border-0">
@@ -156,8 +157,11 @@ export function TableSalles({ salles }: { salles: Salle[] }) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="py-3 text-right">
-                    <BoutonToggleSalle salle={s} />
+                  <TableCell className="py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <MenuEssai salle={s} />
+                      <BoutonToggleSalle salle={s} />
+                    </div>
                   </TableCell>
                 </TableRow>
               );
