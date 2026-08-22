@@ -17,6 +17,7 @@ import "server-only";
 import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { etatAccesSalle } from "@/lib/utils/acces-salle";
 import type { GymModel } from "@/generated/prisma/models";
 
 export type ContexteTenant = {
@@ -62,6 +63,16 @@ export class SalleDesactiveeError extends Error {
   }
 }
 
+/** Distinct de SalleDesactiveeError : ici la salle n'a rien fait de mal, sa
+ *  periode d'essai est simplement terminee. Le message a lui montrer n'est
+ *  pas le meme, et l'action attendue non plus. */
+export class EssaiExpireError extends Error {
+  constructor(public readonly finLe: Date) {
+    super("Periode d'essai terminee");
+    this.name = "EssaiExpireError";
+  }
+}
+
 // cache() de React : une page appelle getTenantContext() une fois par
 // fonction de lib/data/* qui en a besoin, parfois cinq ou six fois. Sans ce
 // cache, chacun de ces appels refaisait un aller-retour vers la base
@@ -83,7 +94,14 @@ export const getTenantContext = cache(async (): Promise<ContexteTenant> => {
   const gym = await prisma.gym.findUnique({ where: { clerkOrgId: orgId } });
 
   if (!gym) throw new SalleIntrouvableError(orgId);
-  if (!gym.actif) throw new SalleDesactiveeError();
+
+  // 4. La salle a-t-elle le droit d'utiliser Fitt aujourd'hui ? Regle unique,
+  //    partagee avec l'espace adherent (lib/utils/acces-salle.ts).
+  const etat = etatAccesSalle(gym);
+  if (etat === "essai-expire") {
+    throw new EssaiExpireError(gym.essaiJusquau!);
+  }
+  if (etat !== "ouvert") throw new SalleDesactiveeError();
 
   return { gymId: gym.id, gym, userId, orgRole: orgRole ?? null };
 });

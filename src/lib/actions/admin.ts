@@ -6,7 +6,13 @@
 // facile d'appeler la mauvaise fonction depuis le mauvais ecran.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { activerSalleParEmail, basculerActivationSalle } from "@/lib/data/gym";
+import {
+  accorderEssai,
+  activerSalleParEmail,
+  basculerActivationSalle,
+  definirAbonnementSalle,
+  retirerEssai,
+} from "@/lib/data/gym";
 import { messageErreur } from "@/lib/utils/erreurs";
 
 export type EtatActivationEmail = {
@@ -59,4 +65,56 @@ export async function actionBasculerActivationSalle(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/admin/${id}`);
+}
+
+/* --- Essai et abonnement ---------------------------------------------------
+   Toutes revalident /admin ET la fiche de la salle : les deux ecrans
+   affichent le meme statut, ils ne doivent jamais se contredire. */
+
+function revaliderVuesSalle(id: string) {
+  revalidatePath("/admin");
+  revalidatePath(`/admin/${id}`);
+}
+
+export async function actionAccorderEssai(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const jours = Number(formData.get("jours"));
+  if (!id || !Number.isFinite(jours)) return;
+
+  try {
+    await accorderEssai(id, jours);
+  } catch (erreur) {
+    // Pas de retour d'etat : ce sont des boutons a duree fixe (+14, +30),
+    // donc la seule erreur possible est une salle disparue entre-temps.
+    console.error(messageErreur(erreur, "Essai non accorde"));
+  }
+
+  revaliderVuesSalle(id);
+}
+
+export async function actionDefinirAbonnement(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const abonnee = formData.get("abonnee") === "true";
+  if (!id) return;
+
+  try {
+    await definirAbonnementSalle(id, abonnee);
+  } catch (erreur) {
+    console.error(messageErreur(erreur, "Changement d'abonnement echoue"));
+  }
+
+  revaliderVuesSalle(id);
+}
+
+export async function actionRetirerEssai(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  try {
+    await retirerEssai(id);
+  } catch (erreur) {
+    console.error(messageErreur(erreur, "Retrait de l'essai echoue"));
+  }
+
+  revaliderVuesSalle(id);
 }

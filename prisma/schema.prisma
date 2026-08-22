@@ -108,6 +108,24 @@ model Gym {
   // une seule fois, jamais efface — une suspension n'annule pas l'historique.
   activeeLe DateTime?
 
+  // --- Commercialisation : essai et abonnement a Fitt -----------------------
+  //
+  // A ne pas confondre avec Abonnement, qui est le contrat d'un ADHERENT
+  // envers sa salle. Ces deux champs decrivent la relation de la SALLE envers
+  // AFRICATECHNOLOGIE.
+  //
+  // Fin de la periode d'essai. null = aucune limite fixee : la salle garde
+  // l'acces indefiniment. C'est volontairement le defaut (decision du
+  // 22/08/2026, essai accorde a la main salle par salle), et c'est aussi ce
+  // qui rend le champ retrocompatible — les salles anterieures a cette
+  // migration ne changent pas de comportement.
+  essaiJusquau DateTime?
+
+  // Cliente payante. Prime sur essaiJusquau : marquer une salle abonnee lui
+  // rend l'acces meme si son essai est expire, sans avoir a effacer la date
+  // — l'historique de l'essai reste lisible.
+  abonnee Boolean @default(false)
+
   // Compteur du numero d'adherent, PAR SALLE (CLAUDE.md §8).
   // On l'incremente dans une transaction a chaque creation. Il ne redescend
   // jamais : un numero libere n'est pas reattribue, meme apres archivage.

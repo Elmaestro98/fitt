@@ -11,16 +11,18 @@
 // La coquille (Sidebar + Topbar) reste TOUJOURS affichee, meme en echec :
 // c'est dans la Topbar que vit le selecteur d'organisation Clerk, seul moyen
 // pour un compte sans salle active d'en choisir ou d'en creer une.
-import { Building2, Clock3, ShieldOff } from "lucide-react";
+import { Building2, Clock3, ShieldOff, TimerOff } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardBody } from "@/components/ui/card";
 import { notificationsStaff, type Notification } from "@/lib/data/notifications";
 import {
   AucuneSalleActiveError,
+  EssaiExpireError,
   getTenantContext,
   SalleDesactiveeError,
   SalleIntrouvableError,
 } from "@/lib/tenant";
+import { formatDateLongue } from "@/lib/utils/format";
 
 export default async function DashboardLayout({
   children,
@@ -43,7 +45,16 @@ export default async function DashboardLayout({
 
 function EcranBloque({ erreur }: { erreur: unknown }) {
   const { icone, titre, texte } =
-    erreur instanceof AucuneSalleActiveError
+    // L'essai expire passe en premier : c'est le seul cas ou la salle n'a
+    // rien fait de mal, et ou l'action attendue est un paiement, pas un appel
+    // au support.
+    erreur instanceof EssaiExpireError
+      ? {
+          icone: <TimerOff className="size-6 text-warning" />,
+          titre: "Periode d'essai terminee",
+          texte: `Votre essai s'est acheve le ${formatDateLongue(erreur.finLe)}. Vos donnees sont intactes et vous les retrouverez telles quelles : contactez AFRICATECHNOLOGIE pour activer votre abonnement.`,
+        }
+      : erreur instanceof AucuneSalleActiveError
       ? {
           icone: <Building2 className="size-6 text-muted" />,
           titre: "Choisissez votre salle",

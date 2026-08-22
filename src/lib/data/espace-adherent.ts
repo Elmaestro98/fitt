@@ -20,6 +20,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
+import { salleAccessible } from "@/lib/utils/acces-salle";
 import {
   expirationDans,
   genererJeton,
@@ -230,14 +231,22 @@ export async function verifierInvitation(
       expireLe: true,
       utiliseLe: true,
       revoqueLe: true,
-      gym: { select: { nom: true, actif: true } },
+      gym: {
+        select: {
+          nom: true,
+          actif: true,
+          activeeLe: true,
+          essaiJusquau: true,
+          abonnee: true,
+        },
+      },
       adherent: { select: { prenom: true, statut: true } },
     },
   });
 
   // Un jeton inexact ne revele rien : ni l'existence d'une salle, ni celle
   // d'un adherent.
-  if (!invitation || !invitation.gym.actif) {
+  if (!invitation || !salleAccessible(invitation.gym)) {
     return { valide: false, raison: "introuvable" };
   }
   if (invitation.revoqueLe) return { valide: false, raison: "revoque" };
@@ -290,14 +299,21 @@ export async function ouvrirSessionDepuisInvitation(jetonClair: string) {
         expireLe: true,
         utiliseLe: true,
         revoqueLe: true,
-        gym: { select: { actif: true } },
+        gym: {
+          select: {
+            actif: true,
+            activeeLe: true,
+            essaiJusquau: true,
+            abonnee: true,
+          },
+        },
         adherent: { select: { statut: true } },
       },
     });
 
     // Re-verification COMPLETE dans la transaction : l'invitation a pu etre
     // revoquee entre l'affichage de la page et le clic.
-    if (!invitation || !invitation.gym.actif) {
+    if (!invitation || !salleAccessible(invitation.gym)) {
       throw new InvitationInvalideError("introuvable");
     }
     if (invitation.revoqueLe) throw new InvitationInvalideError("revoque");
@@ -355,7 +371,17 @@ export async function lireSessionAdherent(jetonClair: string) {
       expireLe: true,
       revoqueLe: true,
       dernierAccesLe: true,
-      gym: { select: { id: true, nom: true, ville: true, actif: true } },
+      gym: {
+        select: {
+          id: true,
+          nom: true,
+          ville: true,
+          actif: true,
+          activeeLe: true,
+          essaiJusquau: true,
+          abonnee: true,
+        },
+      },
       adherent: {
         select: {
           id: true,
@@ -373,7 +399,7 @@ export async function lireSessionAdherent(jetonClair: string) {
   if (!session) return null;
   if (session.revoqueLe) return null;
   if (session.expireLe < new Date()) return null;
-  if (!session.gym.actif) return null;
+  if (!salleAccessible(session.gym)) return null;
   // Le statut est reverifie a CHAQUE requete, pas seulement a l'ouverture :
   // un adherent archive apres coup perd son acces sans que personne ait a
   // penser a fermer sa session.

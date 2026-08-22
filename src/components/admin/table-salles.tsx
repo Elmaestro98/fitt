@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/shadcn/table";
 import { formatDate } from "@/lib/utils/format";
-import { LIBELLES_STATUT_SALLE, statutSalle } from "@/lib/utils/salle";
+import { detailEssai, LIBELLES_STATUT_SALLE, statutSalle } from "@/lib/utils/salle";
 import { cn } from "@/lib/utils/cn";
 
 type Salle = {
@@ -30,6 +30,8 @@ type Salle = {
   ville: string | null;
   actif: boolean;
   activeeLe: Date | null;
+  essaiJusquau: Date | null;
+  abonnee: boolean;
   creeLe: Date;
   _count: { adherents: number };
 };
@@ -148,6 +150,11 @@ export function TableSalles({ salles }: { salles: Salle[] }) {
                   </TableCell>
                   <TableCell className="py-3">
                     <StatutBadge statut={statut} />
+                    {detailEssai(s) && (
+                      <span className="mt-0.5 block font-[family-name:var(--font-mono-admin)] text-[11px] text-admin-muted">
+                        {detailEssai(s)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <BoutonToggleSalle salle={s} />
@@ -178,16 +185,25 @@ export function StatutBadge({
 }: {
   statut: ReturnType<typeof statutSalle>;
 }) {
+  // Vert : la salle tourne et rapporte. Orange : elle demande une decision
+  // (activer, relancer, encaisser). Rouge : l'acces est coupe.
+  const ton =
+    statut === "abonnee" || statut === "active"
+      ? "succes"
+      : statut === "essai" || statut === "en_attente"
+        ? "attention"
+        : "danger";
+
   const couleur =
-    statut === "active"
+    ton === "succes"
       ? "bg-admin-success pouls-admin"
-      : statut === "en_attente"
+      : ton === "attention"
         ? "bg-admin-accent"
         : "bg-admin-danger";
   const texte =
-    statut === "active"
+    ton === "succes"
       ? "text-admin-success"
-      : statut === "en_attente"
+      : ton === "attention"
         ? "text-admin-accent"
         : "text-admin-danger";
 

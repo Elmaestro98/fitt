@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Info as InfoIcon, MapPin, Phone, Users } from "lucide-react";
 import { BoutonToggleSalle } from "@/components/admin/bouton-toggle-salle";
 import { StatutBadge } from "@/components/admin/table-salles";
+import { PanneauEssai } from "@/components/admin/panneau-essai";
 import { Card, CardContent } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Alert, AlertDescription } from "@/components/shadcn/alert";
@@ -56,6 +57,8 @@ export default async function PageDetailSalle({
           </AlertDescription>
         </Alert>
       )}
+
+      <PanneauEssai salle={salle} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Info

@@ -219,6 +219,89 @@ async function activerSalle(id: string) {
  * seul l'acces se ferme. SalleDesactiveeError (tenant.ts) bloque alors tout
  * le staff de cette salle des la prochaine requete.
  */
+/* --- Essai et abonnement (Super Admin) ------------------------------------
+   Ces trois fonctions decrivent la relation commerciale entre une SALLE et
+   AFRICATECHNOLOGIE. A ne pas confondre avec data/abonnement.ts, qui gere le
+   contrat d'un ADHERENT envers sa salle. */
+
+/** Bornes de securite sur la duree d'un essai. Le maximum evite qu'une faute
+ *  de frappe (300 au lieu de 30) n'offre dix mois gratuits sans que personne
+ *  ne s'en apercoive. */
+export const JOURS_ESSAI_MIN = 1;
+export const JOURS_ESSAI_MAX = 180;
+
+/**
+ * Accorde ou prolonge un essai.
+ *
+ * Prolonge depuis la date de fin EXISTANTE quand l'essai court encore, depuis
+ * aujourd'hui quand il est deja expire. Sans cela, prolonger de 14 jours une
+ * salle a qui il en restait 10 ne lui en donnerait que 14 — on lui volerait
+ * les 10 restants.
+ */
+export async function accorderEssai(id: string, jours: number) {
+  await getSuperAdminContext();
+
+  if (!Number.isInteger(jours) || jours < JOURS_ESSAI_MIN || jours > JOURS_ESSAI_MAX) {
+    throw new Error(`La duree doit etre comprise entre ${JOURS_ESSAI_MIN} et ${JOURS_ESSAI_MAX} jours`);
+  }
+
+  const salle = await prisma.gym.findUnique({
+    where: { id },
+    select: { essaiJusquau: true },
+  });
+  if (!salle) throw new Error("Salle introuvable");
+
+  const maintenant = new Date();
+  const depart =
+    salle.essaiJusquau && salle.essaiJusquau > maintenant
+      ? salle.essaiJusquau
+      : maintenant;
+
+  const fin = new Date(depart.getTime() + jours * 24 * 60 * 60 * 1000);
+
+  await prisma.gym.updateMany({
+    where: { id },
+    // Accorder un essai remet forcement la salle en essai : sinon, prolonger
+    // une salle marquee abonnee n'aurait aucun effet visible.
+    data: { essaiJusquau: fin, abonnee: false },
+  });
+
+  return fin;
+}
+
+/**
+ * Bascule entre "cliente payante" et "en essai".
+ *
+ * On n'efface JAMAIS essaiJusquau en marquant une salle abonnee : la date
+ * raconte quand son essai s'est termine, et cette information a de la valeur
+ * commerciale ("elle a paye au bout de combien de jours ?"). C'est abonnee
+ * qui prime dans la regle d'acces, pas l'absence de date.
+ */
+export async function definirAbonnementSalle(id: string, abonnee: boolean) {
+  await getSuperAdminContext();
+
+  const resultat = await prisma.gym.updateMany({
+    where: { id },
+    data: { abonnee },
+  });
+
+  if (resultat.count === 0) throw new Error("Salle introuvable");
+}
+
+/** Retire toute limite sans marquer la salle payante — le cas des salles
+ *  temoins ou partenaires, qu'on ne veut ni facturer ni compter comme
+ *  clientes dans les chiffres. */
+export async function retirerEssai(id: string) {
+  await getSuperAdminContext();
+
+  const resultat = await prisma.gym.updateMany({
+    where: { id },
+    data: { essaiJusquau: null },
+  });
+
+  if (resultat.count === 0) throw new Error("Salle introuvable");
+}
+
 export async function basculerActivationSalle(id: string, actif: boolean) {
   await getSuperAdminContext();
 
