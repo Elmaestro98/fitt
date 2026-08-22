@@ -54,8 +54,158 @@
   --radius-control: 10px;
   --radius-pill: 9999px;
 
-  /* --- Typographie -------------------------------------------------------- */
+  /* --- Typographie --------------------------------------------------------
+     Deux familles, deux roles. Ce n'est PAS une hesitation : c'est la regle
+     du metier. On habille les titres, on ne complique jamais la lecture des
+     donnees.
+
+     Space Grotesk (--font-display) : geometrique, terminaisons coupees a
+     l'equerre, chiffres larges et ouverts. C'est elle qui porte le caractere
+     de la marque — mais uniquement sur des textes COURTS lus d'un coup
+     d'oeil : titres de page, montants, valeurs d'indicateur, libelles de
+     boutons, en-tetes de tableau.
+
+     Inter (--font-sans) : tout le reste. Un gerant lit un tableau de 40
+     lignes a l'accueil, en plein jour, sur un telephone. Lui imposer une
+     police de caractere sur du texte long serait de la fatigue oculaire
+     gratuite. */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+
+  /* --- Mouvement ----------------------------------------------------------
+     Les courbes AVANT les animations : une interface se reconnait a sa facon
+     de bouger autant qu'a ses couleurs. Deux courbes suffisent, et aucune
+     n'est lineaire — rien ne bouge a vitesse constante dans la vraie vie, et
+     l'oeil le sait.
+
+       --ease-sortie  : depart franc, arrivee qui s'ecrase en douceur.
+                        Courbe par defaut de TOUT le produit.
+       --ease-ressort : leger depassement a l'arrivee. Reservee a ce qui
+                        APPARAIT (modale, pastille de notification). Jamais
+                        sur ce qui disparait : un element qui rebondit en
+                        partant donne une impression de bug.
+
+     Durees volontairement courtes : au-dela de 400 ms, une interface de
+     gestion ne parait plus fluide, elle parait lente. */
+  --ease-sortie: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-ressort: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --duree-instant: 120ms; /* survol, changement de couleur */
+  --duree-courte: 200ms; /* bascule, ouverture d'un menu */
+  --duree-moyenne: 320ms; /* entree d'une carte, d'une modale */
+  --duree-longue: 480ms; /* entree d'une page complete */
+
+  /* Exposees comme classes Tailwind : animate-apparition, animate-surgir... */
+  --animate-apparition: apparition var(--duree-moyenne) var(--ease-sortie) both;
+  --animate-surgir: surgir var(--duree-courte) var(--ease-ressort) both;
+  --animate-remonter: remonter var(--duree-courte) var(--ease-sortie) both;
+  --animate-voile: voile var(--duree-courte) var(--ease-sortie) both;
+  --animate-glisser-droite: glisser-droite var(--duree-courte) var(--ease-sortie) both;
+  --animate-chatoiement: chatoiement 1.6s linear infinite;
+  --animate-pouls-doux: pouls-doux 2.4s var(--ease-sortie) infinite;
+
+  @keyframes apparition {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes surgir {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Panneau qui remonte du bas de l'ecran (modale sur telephone). */
+  @keyframes remonter {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes voile {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes glisser-droite {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Squelette de chargement : une bande claire qui balaie la forme grise.
+     Le balayage doit etre LENT et peu contraste — un squelette qui clignote
+     donne l'impression que la page est cassee, pas qu'elle charge. */
+  @keyframes chatoiement {
+    from {
+      background-position: -180% 0;
+    }
+    to {
+      background-position: 180% 0;
+    }
+  }
+
+  /* Halo de fond des ecrans publics : une derive tres lente, presque
+     imperceptible, qui empeche l'aplat sombre de paraitre mort. */
+  --animate-halo: halo 12s var(--ease-sortie) infinite;
+
+  @keyframes halo {
+    0%,
+    100% {
+      opacity: 0.75;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: translate3d(0, 18px, 0) scale(1.08);
+    }
+  }
+
+  @keyframes pouls-doux {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* --- Relief --------------------------------------------------------------
+     La charte privilegie la bordure fine a l'ombre portee (§11), et ca ne
+     change pas : ces ombres ne posent PAS les cartes au repos. Elles servent
+     au mouvement — ce qui se souleve au survol, ce qui flotte au-dessus du
+     reste (modale, menu). Une carte au repos reste plate. */
+  --shadow-souleve: 0 4px 16px -4px rgb(25 28 30 / 0.1),
+    0 2px 6px -2px rgb(25 28 30 / 0.06);
+  --shadow-flottant: 0 18px 45px -12px rgb(25 28 30 / 0.22);
+  --shadow-lueur: 0 6px 18px -6px rgb(255 107 53 / 0.5);
 
   /* --- Console Super Admin (/admin) ---------------------------------------
      Palette distincte et volontaire, PAS une variation du theme ci-dessus :
@@ -185,6 +335,181 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Chiffres a chasse fixe PARTOUT. Sans ca, une colonne de montants FCFA
+   danse d'une ligne a l'autre parce que le "1" est plus etroit que le "8" :
+   l'oeil ne peut plus comparer deux totaux en les survolant. C'est le detail
+   qui separe un tableau amateur d'un tableau de logiciel de gestion. */
+table,
+.tabulaire {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Titres et chiffres cles en Space Grotesk.
+
+   /! Cette classe ne declare QUE la famille, jamais l'interlettrage.
+   Les regles ecrites ici vivent hors des couches de Tailwind, donc elles
+   l'emportent sur ses utilitaires : y ajouter un letter-spacing ecraserait
+   silencieusement le tracking-wide des en-tetes de tableau, et personne ne
+   comprendrait pourquoi. L'interlettrage se demande a la main, la ou on le
+   veut (tracking-tight sur un grand titre). */
+.display {
+  font-family: var(--font-display);
+}
+
+/* Selection de texte aux couleurs de la marque : gratuit, et personne ne
+   s'attend a le voir dans un logiciel de gestion. */
+::selection {
+  background-color: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  color: var(--color-ink);
+}
+
+/* Barre de defilement discrete (navigateurs de bureau). Sur mobile le
+   systeme gere seul, ces regles n'y changent rien. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* Le defilement doux ne concerne QUE les ancres cliquees : jamais le retour
+   en haut de page apres une navigation, que Next.js gere lui-meme. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ===========================================================================
+   Mouvement — utilitaires
+   ---------------------------------------------------------------------------
+   Regle de conduite : le mouvement sert a EXPLIQUER, jamais a decorer.
+   Une carte qui monte de 8 px en apparaissant dit "je viens d'arriver".
+   Un bouton qui s'enfonce dit "j'ai bien recu ton appui" — ce qui compte
+   double a l'accueil d'une salle, sur un telephone, quand le reseau est lent
+   et que la seule preuve que le clic est parti, c'est cette animation.
+   =========================================================================== */
+
+/* Entree en cascade. A poser sur un conteneur : ses enfants directs
+   apparaissent l'un apres l'autre, de haut en bas.
+
+   Le decalage s'arrete a 8 elements. Au-dela, tout arrive ensemble : une
+   liste de 40 adherents qui se deroulerait ligne par ligne mettrait deux
+   secondes a s'afficher, ce qui n'est plus une animation mais une attente. */
+.cascade > * {
+  animation: apparition var(--duree-moyenne) var(--ease-sortie) both;
+}
+.cascade > *:nth-child(1) { animation-delay: 0ms; }
+.cascade > *:nth-child(2) { animation-delay: 45ms; }
+.cascade > *:nth-child(3) { animation-delay: 90ms; }
+.cascade > *:nth-child(4) { animation-delay: 135ms; }
+.cascade > *:nth-child(5) { animation-delay: 180ms; }
+.cascade > *:nth-child(6) { animation-delay: 225ms; }
+.cascade > *:nth-child(7) { animation-delay: 270ms; }
+.cascade > *:nth-child(n + 8) { animation-delay: 300ms; }
+
+/* Carte qui reagit au survol : elle se souleve d'un pixel et prend une
+   ombre. Reserve aux cartes CLIQUABLES — une carte decorative qui bouge sous
+   le curseur promet une action qui n'existe pas. */
+.carte-interactive {
+  transition:
+    transform var(--duree-courte) var(--ease-sortie),
+    box-shadow var(--duree-courte) var(--ease-sortie),
+    border-color var(--duree-courte) var(--ease-sortie);
+}
+@media (hover: hover) {
+  .carte-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-souleve);
+    border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-line));
+  }
+}
+.carte-interactive:active {
+  transform: translateY(0);
+}
+
+/* Retour tactile a l'appui. :active se declenche aussi au doigt, c'est
+   justement la ou il sert le plus. */
+.enfoncable {
+  transition: transform var(--duree-instant) var(--ease-sortie);
+}
+.enfoncable:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Squelette de chargement. A utiliser en attendant des donnees, jamais un
+   spinner plein ecran : le squelette montre la FORME de ce qui arrive, donc
+   l'attente parait plus courte et la page ne saute pas au chargement. */
+.squelette {
+  background-color: var(--color-sunken);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.7) 50%,
+    transparent 100%
+  );
+  background-size: 180% 100%;
+  background-repeat: no-repeat;
+  animation: chatoiement 1.6s linear infinite;
+  /* Pas de border-radius ici, pour la meme raison que .display ci-dessus :
+     il gagnerait sur le rounded-full d'un avatar en attente, qui deviendrait
+     un carre aux angles doux. La forme se demande a l'appel. */
+}
+
+/* Soulignement qui se deploie depuis la gauche au survol d'un lien. */
+.lien-anime {
+  position: relative;
+}
+.lien-anime::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1.5px;
+  width: 100%;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duree-courte) var(--ease-sortie);
+}
+.lien-anime:hover::after {
+  transform: scaleX(1);
+}
+
+/* Ligne de tableau : la teinte de survol arrive progressivement plutot que
+   d'un coup, ce qui evite le clignotement quand le curseur balaie la liste. */
+.rangee {
+  transition: background-color var(--duree-instant) var(--ease-sortie);
+}
+
+/* ===========================================================================
+   Mouvement reduit — non negociable.
+
+   Certaines personnes ressentent un vertige reel devant une interface qui
+   bouge (trouble vestibulaire). Le systeme d'exploitation le signale, on
+   l'ecoute : tout s'arrete, et surtout tout reste VISIBLE — une animation
+   coupee sans remise a l'etat final laisserait la page blanche.
+   =========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .cascade > * {
+    animation: none;
+    opacity: 1;
+  }
+
+  .carte-interactive:hover,
+  .enfoncable:active {
+    transform: none;
+  }
 }
 
 /* Cibles tactiles >= 44 px (CLAUDE.md §11) : on garantit le minimum sur tout

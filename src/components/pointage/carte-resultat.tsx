@@ -45,6 +45,11 @@ export function CarteResultat({ resultat }: { resultat: ResultatPointage }) {
     <div
       className={cn(
         "rounded-card border-2 bg-surface p-5 sm:p-6",
+        // Le resultat SURGIT : c'est la reponse a un geste (badge scanne,
+        // nom tape), et l'accueil doit voir au coin de l'oeil que l'ecran a
+        // change. Une carte qui se contente de remplacer la precedente sans
+        // mouvement passe totalement inapercue quand on ne regarde pas.
+        "animate-surgir shadow-souleve",
         couvert && !suspendu ? "border-success" : "border-danger",
       )}
       // Le staff ne regarde pas toujours l'ecran : le lecteur d'ecran et les
@@ -60,7 +65,10 @@ export function CarteResultat({ resultat }: { resultat: ResultatPointage }) {
         />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-2xl font-bold text-ink sm:text-3xl">
+          {/* Le nom est le plus gros texte de tout le produit : lu a un
+              metre de l'ecran, de biais, par quelqu'un qui tient deja un
+              badge. Police display, interlettrage resserre. */}
+          <p className="display truncate text-2xl font-bold tracking-tight text-ink sm:text-3xl">
             {adherent.prenom} {adherent.nom}
           </p>
           <p className="mt-0.5 font-mono text-sm text-muted">

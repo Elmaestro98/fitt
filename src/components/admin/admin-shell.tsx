@@ -60,7 +60,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <AdminPortalContext.Provider value={conteneur}>
-        <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+        <main className="animate-apparition mx-auto max-w-5xl px-6 py-8">
+          {children}
+        </main>
       </AdminPortalContext.Provider>
     </div>
   );

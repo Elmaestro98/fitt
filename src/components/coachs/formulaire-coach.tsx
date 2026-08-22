@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input } from "@/components/ui/form";
@@ -98,9 +97,8 @@ export function FormulaireCoach({
             Annuler
           </Button>
         </Link>
-        <Button type="submit" disabled={enCours} className="w-full sm:w-auto">
-          {enCours && <Loader2 className="size-4 animate-spin" />}
-          {enCours ? "Enregistrement..." : libelleSoumission}
+        <Button type="submit" chargement={enCours} className="w-full sm:w-auto">
+          {libelleSoumission}
         </Button>
       </div>
     </form>

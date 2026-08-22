@@ -51,7 +51,7 @@ export default async function PageTypesCours() {
           />
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="cascade grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {typesCours.map((t) => (
             <CarteTypeCours key={t.id} typeCours={t} />
           ))}

@@ -358,7 +358,58 @@ Badges de formule (fond clair, texte foncé de la même famille) :
 `Mensuel` `#DAE2FD` · `Annuel` `#E0E3E5` · une teinte par formule.
 
 Rayons 12 px. Ombres très douces (la maquette privilégie la bordure fine à l'ombre
-portée). Police Inter. Icônes en trait fin (lucide-react).
+portée). Icônes en trait fin (lucide-react).
+
+**Typographie — deux familles, deux rôles** (révisé le 22/08/2026, remplace
+« Police Inter » seule) :
+
+| Famille | Classe | Emploi |
+|---|---|---|
+| **Space Grotesk** | `display` | Titres de page, valeurs d'indicateur, montants, libellés de boutons, en-têtes de tableau, entrée de menu active |
+| **Inter** | par défaut | Corps de texte, cellules de tableau, formulaires, aides et messages |
+
+La règle : **on habille les titres, on ne complique jamais la lecture des
+données.** Un gérant lit un tableau de quarante lignes à l'accueil, en plein
+jour, sur un téléphone — une police de caractère sur du texte long est de la
+fatigue oculaire gratuite. Space Grotesk ne descend jamais dans un paragraphe.
+
+`.display` ne déclare **que** la famille, jamais d'interlettrage : les règles de
+`globals.css` vivent hors des couches Tailwind et écraseraient silencieusement
+un `tracking-wide`. Le resserrement se demande à la main (`tracking-tight`).
+
+Chiffres à chasse fixe (`tabular-nums`) appliqués d'office à tout `<table>` :
+sans cela une colonne de montants FCFA danse d'une ligne à l'autre et l'œil ne
+peut plus comparer deux totaux.
+
+**Mouvement** — jetons dans `globals.css`, catalogue vivant sur `/design-system`.
+
+Principe : *le mouvement sert à expliquer, jamais à décorer.* Une carte qui monte
+de 8 px dit « je viens d'arriver » ; un bouton qui s'enfonce dit « j'ai reçu ton
+appui » — ce qui compte double à l'accueil, sur une connexion lente, quand la
+seule preuve que le clic est parti est cette animation.
+
+| Jeton / classe | Emploi |
+|---|---|
+| `--ease-sortie` | Courbe par défaut de tout le produit |
+| `--ease-ressort` | Ce qui **apparaît** (modale, pastille). Jamais ce qui disparaît |
+| `--duree-instant/courte/moyenne/longue` | 120 / 200 / 320 / 480 ms |
+| `animate-apparition` `animate-surgir` `animate-remonter` `animate-voile` | Entrées |
+| `.cascade` | Enfants directs décalés de 45 ms, plafonné à 8 |
+| `.carte-interactive` | Se soulève au survol — **uniquement si réellement cliquable** |
+| `.enfoncable` | S'enfonce à l'appui (seul retour tactile au doigt) |
+| `.squelette` | Chargement : la forme de ce qui arrive, jamais un rond qui tourne |
+| `shadow-souleve` `shadow-flottant` `shadow-lueur` | Relief **en mouvement** seulement ; une carte au repos reste plate |
+
+Deux interdits :
+- **Aucun mouvement sur un élément non interactif.** Ce qui bouge sous le
+  curseur promet une action ; s'il n'y en a pas, l'utilisateur clique dans le
+  vide et croit à un bug.
+- **`prefers-reduced-motion` n'est pas optionnel.** Le trouble vestibulaire est
+  réel. La règle globale de `globals.css` coupe tout **en laissant tout visible**
+  — une animation coupée sans état final laisserait la page blanche.
+
+Framer Motion reste inutilisé : tout ceci est du CSS, donc aucun `"use client"`
+imposé à un Server Component et aucun kilo-octet de JavaScript envoyé.
 
 **Vocabulaire d'interface** — le menu de la maquette dit « Membres » et « Présences » :
 utiliser **« Adhérents »** et **« Pointage »** (§7, §10). Le numéro visible reste

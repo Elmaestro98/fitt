@@ -78,7 +78,7 @@ export function HistoriqueAbonnements({ abonnements }: { abonnements: Ligne[] })
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-5 py-3 text-xs font-medium tracking-wide text-muted uppercase">
+    <th className="display px-5 py-3 text-xs font-semibold tracking-wide text-muted uppercase">
       {children}
     </th>
   );

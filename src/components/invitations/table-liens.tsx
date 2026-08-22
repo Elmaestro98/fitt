@@ -59,7 +59,7 @@ export function TableLiens({ liens }: { liens: Lien[] }) {
             const actif = e.libelle === "Actif";
 
             return (
-              <tr key={lien.id} className="transition-colors hover:bg-canvas">
+              <tr key={lien.id} className="rangee group hover:bg-canvas">
                 <td className="px-5 py-3">
                   <span className="font-medium text-ink">{lien.libelle}</span>
                   <span className="block text-xs text-muted">
@@ -111,7 +111,7 @@ export function TableLiens({ liens }: { liens: Lien[] }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-5 py-3 text-xs font-medium tracking-wide text-muted uppercase">
+    <th className="display px-5 py-3 text-xs font-semibold tracking-wide text-muted uppercase">
       {children}
     </th>
   );

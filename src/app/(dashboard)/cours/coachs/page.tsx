@@ -51,7 +51,7 @@ export default async function PageCoachs() {
           />
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="cascade grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {coachs.map((c) => (
             <CarteCoach key={c.id} coach={c} />
           ))}

@@ -97,8 +97,8 @@ export function BoutonRemettre({
             >
               Retour
             </Button>
-            <Button type="submit" disabled={enCours}>
-              {enCours ? "Encaissement..." : "Confirmer l'encaissement"}
+            <Button type="submit" chargement={enCours}>
+              Confirmer l&apos;encaissement
             </Button>
           </div>
         </form>

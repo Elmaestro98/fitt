@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, BadgeStatut } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Squelette, SqueletteStat } from "@/components/ui/squelette";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata = { title: "Design system — Fitt" };
@@ -16,6 +17,92 @@ export default function PageDesignSystem() {
         titre="Design system"
         sousTitre="Primitives relevees sur les maquettes du 18/08/2026."
       />
+
+      <Section titre="Typographie">
+        <div className="space-y-4 rounded-card border border-line bg-surface p-5">
+          <div>
+            <p className="display text-3xl font-bold tracking-tight text-ink">
+              Space Grotesk — titres et chiffres
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Classe <code className="font-mono">display</code>. Titres de page,
+              montants, valeurs d&apos;indicateur, libelles de boutons, en-tetes
+              de tableau. Jamais un paragraphe.
+            </p>
+          </div>
+          <div className="border-t border-line pt-4">
+            <p className="text-base text-ink">
+              Inter — corps de texte. Un gerant lit un tableau de quarante
+              lignes a l&apos;accueil, en plein jour, sur un telephone : la
+              lisibilite passe avant le caractere.
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Police par defaut, aucune classe a ecrire.
+            </p>
+          </div>
+          <div className="border-t border-line pt-4">
+            <p className="display text-2xl font-bold text-ink tabular-nums">
+              1 240 · 45 000 FCFA · 11/08/2026
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Chiffres a chasse fixe (<code className="font-mono">tabular-nums</code>,
+              applique d&apos;office aux tableaux) : une colonne de montants
+              reste alignee a la verticale.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section titre="Mouvement">
+        <p className="mb-3 text-sm text-muted">
+          Le mouvement sert a expliquer, jamais a decorer. Passez la souris sur
+          les cartes ci-dessous.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card interactive className="p-5">
+            <p className="display font-semibold text-ink">carte-interactive</p>
+            <p className="mt-1 text-sm text-muted">
+              Se souleve au survol. Reserve aux cartes reellement cliquables.
+            </p>
+          </Card>
+          <Card className="p-5">
+            <p className="display font-semibold text-ink">cascade</p>
+            <p className="mt-1 text-sm text-muted">
+              Sur un conteneur : ses enfants entrent l&apos;un apres
+              l&apos;autre, decalage plafonne a 8.
+            </p>
+          </Card>
+          <Card className="p-5">
+            <p className="display font-semibold text-ink">enfoncable</p>
+            <p className="mt-1 text-sm text-muted">
+              S&apos;enfonce a l&apos;appui. Seul retour tactile possible au
+              doigt.
+            </p>
+          </Card>
+        </div>
+        <p className="mt-4 mb-2 text-sm text-muted">
+          Etat de chargement — la forme de ce qui arrive, jamais un rond qui
+          tourne :
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SqueletteStat />
+          <div className="space-y-3 rounded-card border border-line bg-surface p-5">
+            <Squelette className="h-3 w-24 rounded" />
+            <Squelette className="h-8 w-full rounded-control" />
+            <Squelette className="h-3 w-2/3 rounded" />
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-muted">
+          Bouton en attente — le libelle s&apos;efface, la largeur ne bouge
+          pas, un deuxieme appui est impossible :
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <Button chargement>Encaisser 15 000 FCFA</Button>
+          <Button variante="contour" chargement>
+            Enregistrer
+          </Button>
+        </div>
+      </Section>
 
       <Section titre="Couleurs">
         <div className="flex flex-wrap gap-3">

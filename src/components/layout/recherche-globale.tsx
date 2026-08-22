@@ -126,7 +126,17 @@ export function RechercheGlobale() {
 
   return (
     <div ref={conteneur} className="relative min-w-0 flex-1 sm:max-w-md">
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+      {/* peer-focus : la loupe passe a l'orange quand le champ prend le
+          focus. Elle est AVANT le champ dans le DOM, donc on ne peut pas
+          utiliser peer- ; on se contente d'une transition de couleur pilotee
+          par le groupe parent. */}
+      <Search
+        className={cn(
+          "pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2",
+          "text-muted transition-colors duration-[var(--duree-instant)]",
+          ouvert && "text-brand",
+        )}
+      />
 
       <input
         ref={champ}
@@ -146,7 +156,12 @@ export function RechercheGlobale() {
         autoComplete="off"
         className={cn(
           "h-10 w-full rounded-pill border border-transparent bg-sunken pr-9 pl-9",
-          "text-sm text-ink placeholder:text-muted focus:border-line focus:outline-none",
+          "text-sm text-ink placeholder:text-muted outline-none",
+          // Le champ s'eclaircit et s'entoure d'un anneau pale au focus. Sur
+          // un fond deja gris, changer la seule bordure ne se verrait pas.
+          "transition-[background-color,border-color,box-shadow]",
+          "duration-[var(--duree-instant)] ease-sortie",
+          "focus:border-brand/40 focus:bg-surface focus:ring-4 focus:ring-brand/10",
           // Chrome ajoute sa propre croix sur un input[type=search] : sans
           // ca, deux boutons d'effacement se superposent.
           "[&::-webkit-search-cancel-button]:appearance-none",
@@ -175,7 +190,11 @@ export function RechercheGlobale() {
         <div
           id="resultats-recherche"
           role="listbox"
-          className="absolute top-full right-0 left-0 z-40 mt-2 overflow-hidden rounded-card border border-line bg-surface shadow-lg"
+          className={cn(
+            "absolute top-full right-0 left-0 z-40 mt-2 overflow-hidden",
+            "rounded-card border border-line bg-surface shadow-flottant",
+            "animate-surgir origin-top",
+          )}
         >
           {resultats.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
@@ -196,6 +215,7 @@ export function RechercheGlobale() {
                       onClick={() => naviguerVers(adherent.id)}
                       className={cn(
                         "flex w-full items-center gap-3 px-3 py-2.5 text-left",
+                        "transition-colors duration-[var(--duree-instant)]",
                         index === surligne ? "bg-sunken" : "bg-transparent",
                       )}
                     >

@@ -48,7 +48,7 @@ export function TableAdherents({ adherents }: { adherents: LigneAdherent[] }) {
           {adherents.map((a) => {
             const nomComplet = `${a.prenom} ${a.nom}`;
             return (
-              <tr key={a.id} className="transition-colors hover:bg-canvas">
+              <tr key={a.id} className="rangee group hover:bg-canvas">
                 <td className="px-5 py-3">
                   <Link
                     href={`/adherents/${a.id}`}
@@ -82,9 +82,21 @@ export function TableAdherents({ adherents }: { adherents: LigneAdherent[] }) {
                   <Link
                     href={`/adherents/${a.id}`}
                     aria-label={`Ouvrir la fiche de ${nomComplet}`}
-                    className="flex size-9 items-center justify-center rounded-control text-muted hover:bg-sunken hover:text-ink"
+                    className={
+                      "flex size-9 items-center justify-center rounded-control " +
+                      "text-muted transition-colors duration-[var(--duree-instant)] " +
+                      "hover:bg-sunken hover:text-ink"
+                    }
                   >
-                    <ChevronRight className="size-4" />
+                    {/* Le chevron avance quand la LIGNE entiere est survolee
+                        (group), pas seulement lui : c'est la ligne qu'on vise
+                        du doigt, pas ce petit carre de 36 px. */}
+                    <ChevronRight
+                      className={
+                        "size-4 transition-transform duration-[var(--duree-instant)] " +
+                        "ease-sortie group-hover:translate-x-0.5 group-hover:text-brand"
+                      }
+                    />
                   </Link>
                 </td>
               </tr>
@@ -98,7 +110,7 @@ export function TableAdherents({ adherents }: { adherents: LigneAdherent[] }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-5 py-3 text-xs font-medium tracking-wide text-muted uppercase">
+    <th className="display px-5 py-3 text-xs font-semibold tracking-wide text-muted uppercase">
       {children}
     </th>
   );

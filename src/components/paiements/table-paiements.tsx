@@ -53,7 +53,7 @@ export function TablePaiements({ lignes }: { lignes: LigneJournal[] }) {
             const neutralise = Boolean(p.contrepartie);
 
             return (
-              <tr key={p.id} className="transition-colors hover:bg-canvas">
+              <tr key={p.id} className="rangee group hover:bg-canvas">
                 <td className="px-5 py-3 whitespace-nowrap text-muted">
                   {formatDate(p.encaisseLe)}
                 </td>
@@ -142,7 +142,7 @@ function Th({
   return (
     <th
       className={cn(
-        "px-5 py-3 text-xs font-medium tracking-wide text-muted uppercase",
+        "display px-5 py-3 text-xs font-semibold tracking-wide text-muted uppercase",
         className,
       )}
     >

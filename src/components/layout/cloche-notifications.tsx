@@ -52,27 +52,57 @@ export function ClocheNotifications({
             : `Notifications — ${notifications.length} a voir`
         }
         aria-expanded={ouvert}
-        className="relative rounded-control p-2 text-muted hover:bg-sunken hover:text-ink"
+        className={cn(
+          "group relative rounded-control p-2 text-muted transition-colors",
+          "duration-[var(--duree-instant)] ease-sortie hover:bg-sunken hover:text-ink",
+        )}
       >
-        <Bell className="size-5" />
+        {/* La cloche s'incline au survol, comme si on la faisait sonner.
+            Detail gratuit, mais c'est de ces details qu'une interface tire
+            son caractere. */}
+        <Bell
+          className={cn(
+            "size-5 origin-top transition-transform",
+            "duration-[var(--duree-courte)] ease-ressort group-hover:-rotate-12",
+          )}
+        />
         {notifications.length > 0 && (
-          <span
-            className={cn(
-              "absolute top-1 right-1 flex size-4 items-center justify-center",
-              "rounded-full text-[10px] font-semibold text-white",
-              // Orange s'il y a une vraie alerte, gris si ce n'est
-              // qu'informatif : la pastille doit vouloir dire quelque chose.
-              alertes > 0 ? "bg-brand" : "bg-muted",
+          <>
+            {/* Halo qui pulse DERRIERE la pastille, et seulement quand il y a
+                une vraie alerte. Une pastille purement informative ne doit pas
+                clignoter : on cesserait vite de la regarder. */}
+            {alertes > 0 && (
+              <span
+                aria-hidden="true"
+                className="animate-pouls-doux absolute top-1 right-1 size-4 rounded-full bg-brand/40"
+              />
             )}
-          >
-            {notifications.length}
-          </span>
+            <span
+              className={cn(
+                "animate-surgir absolute top-1 right-1 flex size-4 items-center justify-center",
+                "rounded-full text-[10px] font-semibold text-white tabular-nums",
+                // Orange s'il y a une vraie alerte, gris si ce n'est
+                // qu'informatif : la pastille doit vouloir dire quelque chose.
+                alertes > 0 ? "bg-brand" : "bg-muted",
+              )}
+            >
+              {notifications.length}
+            </span>
+          </>
         )}
       </button>
 
       {ouvert && (
-        <div className="absolute top-full right-0 z-40 mt-2 w-72 overflow-hidden rounded-card border border-line bg-surface shadow-lg">
-          <p className="border-b border-line px-4 py-2.5 text-sm font-medium text-ink">
+        <div
+          className={cn(
+            "absolute top-full right-0 z-40 mt-2 w-72 overflow-hidden",
+            "rounded-card border border-line bg-surface shadow-flottant",
+            // Le panneau surgit depuis son coin haut-droit, c'est-a-dire
+            // depuis la cloche : le mouvement dit d'ou il vient.
+            "animate-surgir origin-top-right",
+          )}
+        >
+          <p className="display border-b border-line px-4 py-2.5 text-sm font-semibold text-ink">
             A votre attention
           </p>
 
@@ -92,7 +122,10 @@ export function ClocheNotifications({
                   <Link
                     href={notification.href}
                     onClick={() => setOuvert(false)}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-sunken"
+                    className={cn(
+                      "flex items-start gap-3 px-4 py-3 transition-colors",
+                      "duration-[var(--duree-instant)] hover:bg-sunken",
+                    )}
                   >
                     <span
                       className={cn(

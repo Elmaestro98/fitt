@@ -82,7 +82,7 @@ export default async function PagePaiements({
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="cascade grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Encaisse aujourd'hui"
           valeur={formatFCFA(stats.jour)}

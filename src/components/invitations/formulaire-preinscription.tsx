@@ -6,7 +6,7 @@
 // PAS un acces (§4, §5) : il depose une demande que la salle validera.
 // L'ecran le dit, pour que personne ne reparte en croyant etre inscrit.
 import { useActionState, useState } from "react";
-import { CheckCircle2, Loader2, UserRound } from "lucide-react";
+import { CheckCircle2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input, Select } from "@/components/ui/form";
@@ -192,9 +192,8 @@ export function FormulairePreinscription({
               </Champ>
             </div>
 
-            <Button type="submit" disabled={enCours} className="w-full">
-              {enCours && <Loader2 className="size-4 animate-spin" />}
-              {enCours ? "Envoi..." : "Envoyer ma demande"}
+            <Button type="submit" chargement={enCours} className="w-full">
+              Envoyer ma demande
             </Button>
           </form>
         </CardBody>

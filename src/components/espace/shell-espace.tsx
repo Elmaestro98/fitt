@@ -11,6 +11,7 @@
 // chercher lui-meme : rien de ce qui touche au tenant ne se resout dans le
 // navigateur.
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import type { StatutAdherent } from "@/components/ui/badge";
 import { SidebarEspace } from "./sidebar-espace";
 import { TopbarEspace } from "./topbar-espace";
@@ -33,9 +34,22 @@ export function ShellEspace({
   children: React.ReactNode;
 }) {
   const [menuOuvert, setMenuOuvert] = useState(false);
+  const chemin = usePathname();
 
   return (
     <div className="flex min-h-screen bg-canvas">
+      {/* Lien d'evitement, comme cote back-office : la premiere tabulation
+          saute la navigation pour aller droit au contenu. */}
+      <a
+        href="#contenu-espace"
+        className={
+          "sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] " +
+          "focus:rounded-control focus:bg-brand focus:px-4 focus:py-2 " +
+          "focus:text-sm focus:font-medium focus:text-white"
+        }
+      >
+        Aller au contenu
+      </a>
       <SidebarEspace
         gymNom={gymNom}
         ouverte={menuOuvert}
@@ -51,7 +65,15 @@ export function ShellEspace({
           statut={statut}
           onOuvrirMenu={() => setMenuOuvert(true)}
         />
-        <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
+        {/* key={chemin} : l'entree rejoue a chaque changement de page, pas a
+            chaque changement de filtre. Voir app-shell.tsx cote back-office. */}
+        <main
+          id="contenu-espace"
+          key={chemin}
+          className="animate-apparition flex-1 px-4 py-6 sm:px-6"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

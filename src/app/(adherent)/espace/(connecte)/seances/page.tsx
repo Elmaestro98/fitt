@@ -64,7 +64,7 @@ export default async function PageSeances() {
           </CardBody>
         </Card>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="cascade grid gap-5 sm:grid-cols-2">
           {[...groupes.entries()].map(([mois, lignes]) => (
             <section key={mois}>
               <h2 className="mb-2 px-1 text-xs font-medium tracking-wide text-muted uppercase">

@@ -108,12 +108,16 @@ export default async function PageTableauDeBord() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* cascade : les quatre indicateurs se posent de gauche a droite. Le
+          regard suit le mouvement dans l'ordre d'importance, au lieu de
+          recevoir quatre chiffres d'un bloc. */}
+      <div className="cascade grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Adherents actifs"
           valeur={String(stats.adherentsActifs)}
           icone={<Users className="size-4" />}
           precision={`sur ${stats.adherentsTotal} au fichier`}
+          href="/adherents?statut=ACTIF"
         />
         <StatCard
           label="Expirations (7 j)"
@@ -121,6 +125,7 @@ export default async function PageTableauDeBord() {
           icone={<CalendarClock className="size-4" />}
           teinte="warning"
           precision="abonnements a renouveler"
+          href="/abonnements?vue=bientot"
         />
         <StatCard
           label="Souscrit ce mois"
@@ -129,6 +134,7 @@ export default async function PageTableauDeBord() {
           teinte="success"
           variation={stats.variationCA}
           precision="aucune reference le mois dernier"
+          href="/abonnements"
         />
         <StatCard
           label="Nouveaux adherents"
@@ -137,6 +143,7 @@ export default async function PageTableauDeBord() {
           teinte="info"
           variation={stats.variationNouveaux}
           precision="inscrits ce mois-ci"
+          href="/adherents"
         />
       </div>
 

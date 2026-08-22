@@ -6,7 +6,7 @@
 // stocke, seule son empreinte l'est). L'ecran le dit explicitement, et
 // propose la copie avant toute autre action : un lien ferme est un lien perdu.
 import { useActionState, useState } from "react";
-import { Check, Copy, Link2, Loader2 } from "lucide-react";
+import { Check, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input, Select } from "@/components/ui/form";
@@ -100,9 +100,8 @@ export function FormulaireLien() {
             votre equipe.
           </p>
 
-          <Button type="submit" disabled={enCours}>
-            {enCours && <Loader2 className="size-4 animate-spin" />}
-            {enCours ? "Generation..." : "Generer le lien"}
+          <Button type="submit" chargement={enCours}>
+            Generer le lien
           </Button>
         </form>
       </CardBody>

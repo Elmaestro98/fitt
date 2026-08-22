@@ -14,13 +14,25 @@ export function Topbar({
   notifications: Notification[];
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-canvas">
+    // supports-[backdrop-filter] : le fond translucide n'est applique que si
+    // le navigateur sait flouter. Ailleurs, la barre reste opaque — jamais un
+    // en-tete a moitie transparent au-dessus d'un tableau illisible.
+    <header
+      className={
+        "sticky top-0 z-30 border-b border-line bg-canvas/85 " +
+        "supports-[backdrop-filter]:backdrop-blur-md"
+      }
+    >
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
         {/* Ouverture du tiroir : visible uniquement sous lg. */}
         <button
           type="button"
           onClick={onOuvrirMenu}
-          className="rounded-control p-2 text-muted hover:bg-sunken hover:text-ink lg:hidden"
+          className={
+            "enfoncable rounded-control p-2 text-muted transition-colors " +
+            "duration-[var(--duree-instant)] ease-sortie " +
+            "hover:bg-sunken hover:text-ink lg:hidden"
+          }
           aria-label="Ouvrir le menu"
         >
           <Menu className="size-5" />

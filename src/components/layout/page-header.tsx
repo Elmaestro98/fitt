@@ -22,7 +22,11 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="truncate text-2xl font-bold text-ink">{titre}</h1>
+        {/* Le titre de page est le seul texte de l'ecran en display GRAS :
+            c'est le point d'ancrage du regard a l'arrivee. */}
+        <h1 className="display truncate text-2xl font-bold tracking-tight text-ink">
+          {titre}
+        </h1>
         {sousTitre && <p className="mt-1 text-sm text-muted">{sousTitre}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}

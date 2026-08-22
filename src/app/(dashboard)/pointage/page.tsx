@@ -40,7 +40,7 @@ export default async function PagePointage() {
         sousTitre="Enregistrez les passages a l'entree"
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="cascade grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Passages aujourd'hui"
           valeur={String(stats.passages)}

@@ -76,7 +76,7 @@ export function TableAbonnements({
               a.statut === "EXPIRE";
 
             return (
-              <tr key={a.id} className="transition-colors hover:bg-canvas">
+              <tr key={a.id} className="rangee group hover:bg-canvas">
                 <td className="px-5 py-3">
                   <Link
                     href={`/adherents/${a.adherent.id}`}
@@ -193,7 +193,7 @@ function Echeance({ finLe, statut }: { finLe: Date; statut: string }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-5 py-3 text-xs font-medium tracking-wide text-muted uppercase">
+    <th className="display px-5 py-3 text-xs font-semibold tracking-wide text-muted uppercase">
       {children}
     </th>
   );

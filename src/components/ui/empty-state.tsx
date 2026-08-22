@@ -19,15 +19,22 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center px-6 py-16 text-center",
+        // Les quatre elements arrivent l'un apres l'autre. Un ecran vide est
+        // le moment ou l'on a le plus besoin d'etre guide : la cascade
+        // conduit l'oeil de l'icone vers le bouton, dans l'ordre de lecture.
+        "cascade",
         className,
       )}
     >
       {icone && (
-        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-          {icone}
+        <div className="relative mb-4 flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
+          {/* Halo qui respire, tres doux. Il signale que l'ecran est vide
+              par etat, pas parce qu'il a plante. */}
+          <span className="absolute size-12 animate-pouls-doux rounded-full bg-brand/10" />
+          <span className="relative">{icone}</span>
         </div>
       )}
-      <h3 className="font-semibold text-ink">{titre}</h3>
+      <h3 className="display font-semibold text-ink">{titre}</h3>
       {description && (
         <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
       )}

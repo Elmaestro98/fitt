@@ -67,7 +67,7 @@ export default async function PageRapports({
 
       <FiltrePeriode actif={mois} />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="cascade grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={`Encaisse (${mois} mois)`}
           valeur={formatFCFA(totalEncaisse)}

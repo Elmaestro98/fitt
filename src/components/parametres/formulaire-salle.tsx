@@ -7,7 +7,7 @@
 // une modification annulee silencieusement un jour ou l'autre. Il est affiche
 // en lecture seule, avec l'indication de l'endroit ou le changer.
 import { useActionState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input } from "@/components/ui/form";
@@ -99,9 +99,8 @@ export function FormulaireSalle({
             />
           </Champ>
 
-          <Button type="submit" disabled={enCours}>
-            {enCours && <Loader2 className="size-4 animate-spin" />}
-            {enCours ? "Enregistrement..." : "Enregistrer"}
+          <Button type="submit" chargement={enCours}>
+            Enregistrer
           </Button>
         </form>
       </CardBody>

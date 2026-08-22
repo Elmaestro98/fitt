@@ -2,15 +2,30 @@ import { cn } from "@/lib/utils/cn";
 
 /* Le conteneur blanc de toutes tes maquettes : bordure fine plutot qu'ombre
    portee. C'est un choix net de ta charte — les cartes se detachent par le
-   trait, pas par le relief. */
+   trait, pas par le relief. Ca ne bouge pas.
+
+   Ce qui est ajoute, c'est le COMPORTEMENT :
+   - `interactive` : la carte se souleve au survol. A n'activer que si elle
+     est reellement cliquable ; une carte decorative qui bouge sous le
+     curseur promet une action qui n'existe pas.
+   - `anime` : la carte entre en fondu montant. Utile sur un contenu qui
+     apparait apres coup (resultat de recherche, panneau qui se deplie) ;
+     inutile — et donc a eviter — quand le parent porte deja `.cascade`. */
 export function Card({
+  interactive = false,
+  anime = false,
   className,
   ...props
-}: React.ComponentProps<"section">) {
+}: React.ComponentProps<"section"> & {
+  interactive?: boolean;
+  anime?: boolean;
+}) {
   return (
     <section
       className={cn(
         "rounded-card border border-line bg-surface",
+        interactive && "carte-interactive",
+        anime && "animate-apparition",
         className,
       )}
       {...props}
@@ -38,7 +53,7 @@ export function CardHeader({
         className,
       )}
     >
-      <h2 className="flex items-center gap-2 font-semibold text-ink">
+      <h2 className="display flex items-center gap-2 font-semibold text-ink">
         {icone}
         {titre}
       </h2>

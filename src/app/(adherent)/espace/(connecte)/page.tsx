@@ -61,7 +61,7 @@ export default async function PageEspace() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="cascade grid gap-4 sm:grid-cols-3">
         <Raccourci
           href="/espace/pointer"
           icone={<ScanLine className="size-5 text-brand" />}

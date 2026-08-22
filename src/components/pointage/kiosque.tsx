@@ -145,7 +145,7 @@ export function Kiosque({
         <Card className="p-5 sm:p-6">
           <label
             htmlFor="recherche-pointage"
-            className="block text-center text-lg font-semibold text-ink sm:text-xl"
+            className="display block text-center text-lg font-semibold tracking-tight text-ink sm:text-xl"
           >
             Qui entre&nbsp;?
           </label>
@@ -165,7 +165,17 @@ export function Kiosque({
               autoFocus
               autoComplete="off"
               placeholder="Ex. Diop, FITT-0042, 77..."
-              className="h-14 w-full rounded-control border border-line bg-sunken pr-4 pl-12 text-lg text-ink placeholder:text-muted focus:border-brand focus:bg-surface focus:outline-none"
+              className={
+                // Champ de la borne : plus grand que partout ailleurs, et le
+                // focus doit se voir de loin — anneau large, fond qui
+                // s'eclaircit. C'est le seul champ de l'application qu'on
+                // utilise debout, sans regarder ses mains.
+                "h-14 w-full rounded-control border border-line bg-sunken pr-4 pl-12 " +
+                "text-lg text-ink placeholder:text-muted outline-none " +
+                "transition-[background-color,border-color,box-shadow] " +
+                "duration-[var(--duree-courte)] ease-sortie " +
+                "focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand/15"
+              }
             />
           </div>
 

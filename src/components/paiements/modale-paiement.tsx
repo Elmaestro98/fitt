@@ -6,7 +6,7 @@
 // mais reste MODIFIABLE : un paiement partiel (10 000 sur 15 000) est un cas
 // normal au Senegal, pas une erreur a corriger.
 import { useActionState, useEffect, useState } from "react";
-import { Loader2, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlerteFormulaire, Champ, Input, Select } from "@/components/ui/form";
 import { Modale } from "@/components/ui/modale";
@@ -217,9 +217,11 @@ export function ModalePaiement({
             >
               Retour
             </Button>
-            <Button type="submit" disabled={enCours}>
-              {enCours && <Loader2 className="size-4 animate-spin" />}
-              {enCours ? "Enregistrement..." : "Enregistrer le paiement"}
+            {/* chargement : l'anneau tourne ET le bouton se bloque. Sur un
+                 paiement, c'est ce blocage qui compte — un double appui a
+                 l'accueil creerait deux ecritures en caisse. */}
+            <Button type="submit" chargement={enCours}>
+              Enregistrer le paiement
             </Button>
           </div>
         </form>
