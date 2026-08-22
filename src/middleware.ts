@@ -28,6 +28,12 @@ const estRoutePublique = createRouteMatcher([
   //   /espace(...)     : l'espace lui-meme
   "/activer(.*)",
   "/espace(.*)",
+  // Ecran affiche par le service worker quand le reseau est coupe
+  // (public/sw.js). Exiger une session pour l'afficher serait absurde :
+  // c'est precisement la page qui sert quand plus rien n'est joignable, et
+  // Clerk ne peut de toute facon pas verifier de session sans reseau.
+  // Elle est entierement statique et ne lit aucune donnee de salle.
+  "/hors-ligne",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

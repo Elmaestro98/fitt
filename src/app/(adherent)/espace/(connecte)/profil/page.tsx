@@ -5,12 +5,13 @@
 // laisser l'adherent le changer seul, c'est risquer qu'il se rende
 // injoignable, ou qu'il prenne le numero deja enregistre de quelqu'un
 // d'autre. Une correction passe par l'accueil, qui verifie.
-import { CalendarClock, Phone, Mail, ShieldCheck } from "lucide-react";
+import { CalendarClock, Phone, Mail, ShieldCheck, Smartphone } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { BadgeStatut, type StatutAdherent } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { BoutonDeconnexion } from "@/components/espace/bouton-deconnexion";
+import { BoutonInstallation } from "@/components/pwa/bouton-installation";
 import { exigerSessionAdherent } from "@/lib/session-adherent";
 import { formatDateLongue } from "@/lib/utils/format";
 import { formaterTelephone } from "@/lib/utils/telephone";
@@ -93,6 +94,24 @@ export default async function PageProfil() {
               <div className="mt-4 flex justify-start">
                 <BoutonDeconnexion />
               </div>
+            </CardBody>
+          </Card>
+
+          {/* L'adherent ouvre son espace depuis un lien WhatsApp : sans
+              installation, il doit retrouver ce message chaque fois. C'est
+              precisement la population pour qui l'icone sur l'ecran
+              d'accueil change tout. */}
+          <Card>
+            <CardHeader
+              titre="Installer Fitt"
+              icone={<Smartphone className="size-4 text-muted" />}
+            />
+            <CardBody>
+              <p className="text-sm text-muted">
+                Ajoutez Fitt a votre ecran d&apos;accueil pour ouvrir votre
+                espace en un geste, sans rechercher le lien.
+              </p>
+              <BoutonInstallation className="mt-4" />
             </CardBody>
           </Card>
         </div>
