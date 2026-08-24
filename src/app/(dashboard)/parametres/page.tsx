@@ -29,6 +29,8 @@ export default async function PageParametres() {
         telephone={gym.telephone}
         adresse={gym.adresse}
         ville={gym.ville}
+        logoUrl={gym.logoUrl}
+        prefixeAdherent={gym.prefixeAdherent}
       />
 
       {/* Installation de l'application. La carte entiere disparait si le
@@ -50,7 +52,10 @@ export default async function PageParametres() {
             <Ligne
               icone={<Users className="size-4 text-muted" />}
               label="Prochain numero d'adherent"
-              valeur={formatNumeroAdherent(gym.dernierNumeroAdherent + 1)}
+              valeur={formatNumeroAdherent(
+                gym.dernierNumeroAdherent + 1,
+                gym.prefixeAdherent,
+              )}
             />
           </dl>
 

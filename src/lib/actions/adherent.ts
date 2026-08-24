@@ -17,9 +17,28 @@ import {
   rechercheRapideAdherents,
   schemaNouvelAdherent,
   telephonesExistants,
+  type IntentionPhotoAdherent,
   type NouvelAdherent,
 } from "@/lib/data/adherent";
+import { PhotoInvalideError } from "@/lib/data/stockage";
 import { parserCSV, type LigneCSV } from "@/lib/utils/csv";
+
+/**
+ * Ce que le formulaire demande de faire de la photo. Un <input type="file">
+ * non renseigne arrive comme un File de taille 0, jamais comme un champ
+ * absent : c'est ce cas-la, et pas l'absence du champ, qui signifie "je n'y
+ * touche pas" (meme logique que lireIntentionPhoto dans lib/actions/produit.ts).
+ */
+function lireIntentionPhoto(formData: FormData): IntentionPhotoAdherent {
+  const fichier = formData.get("photo");
+  if (fichier instanceof File && fichier.size > 0) {
+    return { action: "remplacee", fichier };
+  }
+  if (formData.get("retirerPhoto") === "on") {
+    return { action: "retiree" };
+  }
+  return { action: "inchangee" };
+}
 
 export type EtatFormulaire = {
   erreurs?: Record<string, string[] | undefined>;
@@ -68,7 +87,7 @@ export async function actionCreerAdherent(
   // creerAdherent() appelle getTenantContext() : aucun gymId ne transite par
   // le formulaire (§9 : exposer gymId dans un formulaire est un interdit).
   try {
-    await creerAdherent(resultat.data);
+    await creerAdherent(resultat.data, lireIntentionPhoto(formData));
   } catch (erreur) {
     // --- Barriere 3 : les contraintes de la base -------------------------
     // Deux receptionnistes peuvent saisir le meme numero a une seconde
@@ -79,6 +98,11 @@ export async function actionCreerAdherent(
           telephone: ["Un adherent de cette salle utilise deja ce numero."],
         },
       };
+    }
+    // Format non reconnu, fichier trop lourd, envoi echoue : message precis
+    // sur le champ photo, pour que le gerant sache quoi corriger.
+    if (erreur instanceof PhotoInvalideError) {
+      return { erreurs: { photo: [erreur.message] } };
     }
     return {
       message:
@@ -118,7 +142,7 @@ export async function actionModifierAdherent(
   }
 
   try {
-    await modifierAdherent(id, resultat.data);
+    await modifierAdherent(id, resultat.data, lireIntentionPhoto(formData));
   } catch (erreur) {
     if (estDoublon(erreur)) {
       return {
@@ -126,6 +150,9 @@ export async function actionModifierAdherent(
           telephone: ["Un autre adherent de cette salle utilise deja ce numero."],
         },
       };
+    }
+    if (erreur instanceof PhotoInvalideError) {
+      return { erreurs: { photo: [erreur.message] } };
     }
     return {
       message: "La modification a echoue. Verifiez votre connexion et reessayez.",

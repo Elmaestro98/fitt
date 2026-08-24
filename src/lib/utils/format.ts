@@ -51,7 +51,17 @@ export function formatHeure(date: Date): string {
   }).format(date);
 }
 
-/** Numero d'adherent visible : 42 -> "FITT-0042" (CLAUDE.md §8). */
-export function formatNumeroAdherent(sequence: number): string {
-  return `FITT-${String(sequence).padStart(4, "0")}`;
+/**
+ * Numero d'adherent visible : 42 -> "FITT-0042" (CLAUDE.md §8).
+ *
+ * Le prefixe vient de Gym.prefixeAdherent, "FITT" par defaut, modifiable a
+ * sa guise dans les parametres. Les numeros deja attribues ne changent
+ * jamais retroactivement : seuls les appelants passent le prefixe ACTUEL de
+ * la salle, au moment de creer un nouvel adherent.
+ */
+export function formatNumeroAdherent(
+  sequence: number,
+  prefixe: string = "FITT",
+): string {
+  return `${prefixe}-${String(sequence).padStart(4, "0")}`;
 }

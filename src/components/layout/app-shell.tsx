@@ -40,13 +40,19 @@ export function AppShell({
         Aller au contenu
       </a>
 
-      <Sidebar ouverte={menuOuvert} onFermer={() => setMenuOuvert(false)} />
+      {/* print:hidden : la coquille (menu, barre haute) n'a rien a faire sur
+          une carte membre imprimee — voir app/(dashboard)/adherents/[id]/carte. */}
+      <div className="print:hidden">
+        <Sidebar ouverte={menuOuvert} onFermer={() => setMenuOuvert(false)} />
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar
-          onOuvrirMenu={() => setMenuOuvert(true)}
-          notifications={notifications}
-        />
+        <div className="print:hidden">
+          <Topbar
+            onOuvrirMenu={() => setMenuOuvert(true)}
+            notifications={notifications}
+          />
+        </div>
 
         {/* key={chemin} : change d'identite a chaque changement de PAGE, donc
             React remonte le bloc et l'animation d'entree rejoue. Volontairement
@@ -57,7 +63,7 @@ export function AppShell({
         <main
           id="contenu"
           key={chemin}
-          className="animate-apparition flex-1 px-4 py-6 sm:px-6"
+          className="animate-apparition flex-1 px-4 py-6 sm:px-6 print:p-0"
         >
           {children}
         </main>

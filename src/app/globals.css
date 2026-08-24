@@ -576,3 +576,23 @@ table,
   --color-admin-success: #00af79;
   --color-admin-danger: #ba1a1a;
 }
+
+/* Impression de la carte membre (app/(dashboard)/adherents/[id]/carte).
+   Sans marge de page : c'est la mise en page de la carte elle-meme, en mm
+   dans .carte-membre-page ci-dessous, qui doit occuper toute la feuille. */
+@media print {
+  @page {
+    margin: 0;
+  }
+  body {
+    background: #fff;
+  }
+  /* Sans ca, Chrome/Firefox omettent par defaut les couleurs de fond a
+     l'impression (case "graphismes d'arriere-plan" souvent decochee) : la
+     carte membre ressortirait blanche au lieu de l'anthracite de la charte.
+     -webkit- pour Chrome/Edge/Safari, la propriete standard pour Firefox. */
+  .carte-membre {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

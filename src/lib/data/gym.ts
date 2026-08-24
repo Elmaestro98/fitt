@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
 import { getSuperAdminContext } from "@/lib/super-admin";
 import { normaliserTelephoneSalle } from "@/lib/utils/telephone";
+import { televerserLogoGym } from "@/lib/data/stockage";
 
 /**
  * Cree la salle correspondant a l'organisation Clerk active, si elle n'existe
@@ -97,12 +98,41 @@ export const schemaParametresSalle = z.object({
     .optional(),
   adresse: z.string().trim().max(200).optional(),
   ville: z.string().trim().max(80).optional(),
+  // Le champ est toujours pre-rempli (defaultValue) : ce schema ne voit un
+  // vide que si le gerant efface tout deliberement, auquel cas l'erreur
+  // "2 caracteres minimum" l'empeche d'enregistrer un prefixe vide.
+  prefixeAdherent: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]+$/, "Lettres et chiffres uniquement, sans espace")
+    .min(2, "2 caracteres minimum")
+    .max(12, "12 caracteres maximum")
+    .optional(),
 });
 
 export type ParametresSalle = z.infer<typeof schemaParametresSalle>;
 
-export async function modifierParametresSalle(donnees: ParametresSalle) {
+/** Ce que le formulaire demande de faire du logo (meme principe
+ *  qu'IntentionPhotoAdherent, lib/data/adherent.ts). */
+export type IntentionLogoGym =
+  | { action: "inchangee" }
+  | { action: "remplacee"; fichier: File }
+  | { action: "retiree" };
+
+export async function modifierParametresSalle(
+  donnees: ParametresSalle,
+  logo: IntentionLogoGym = { action: "inchangee" },
+) {
   const { gymId } = await getTenantContext();
+
+  // Le televersement a lieu AVANT l'ecriture, hors de toute transaction —
+  // meme raison que creerAdherent/creerProduit : ne pas immobiliser une
+  // connexion du pool pendant l'appel reseau vers Supabase Storage.
+  const logoUrl =
+    logo.action === "remplacee"
+      ? await televerserLogoGym(gymId, logo.fichier)
+      : null;
 
   // updateMany plutot qu'update : meme raison que partout ailleurs, le where
   // reste libre. Ici l'id vient deja du tenant, mais on garde la forme pour
@@ -113,6 +143,11 @@ export async function modifierParametresSalle(donnees: ParametresSalle) {
       telephone: donnees.telephone || null,
       adresse: donnees.adresse || null,
       ville: donnees.ville || null,
+      ...(donnees.prefixeAdherent ? { prefixeAdherent: donnees.prefixeAdherent } : {}),
+      // Champ volontairement absent quand le logo est inchange : l'omettre
+      // laisse la valeur en base, alors que logoUrl: null l'effacerait.
+      ...(logo.action === "remplacee" ? { logoUrl } : {}),
+      ...(logo.action === "retiree" ? { logoUrl: null } : {}),
     },
   });
 

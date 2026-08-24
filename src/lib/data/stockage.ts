@@ -10,11 +10,12 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { supabase } from "@/lib/supabase";
 
-/* Un bucket par nature de contenu. Les deux sont PUBLICS : ni une photo de
-   profil ni une photo de produit n'est une donnee sensible, et sans bucket
-   public next/image ne peut pas les afficher (§6). */
+/* Un bucket par nature de contenu. Tous PUBLICS : ni une photo de profil, ni
+   une photo de produit, ni le logo d'une salle n'est une donnee sensible, et
+   sans bucket public next/image ne peut pas les afficher (§6). */
 const BUCKET_ADHERENTS = "photos-adherents";
 const BUCKET_PRODUITS = "photos-produits";
+const BUCKET_LOGOS = "logos-salles";
 
 /** 5 Mo — largement assez pour une photo, peu pour un telephone en 4G faible. */
 const TAILLE_MAX = 5 * 1024 * 1024;
@@ -84,4 +85,11 @@ export function televerserPhotoAdherent(gymId: string, fichier: File) {
  *  affiche une icone par defaut tant qu'aucune image n'est fournie. */
 export function televerserPhotoProduit(gymId: string, fichier: File) {
   return televerserImage(BUCKET_PRODUITS, gymId, fichier);
+}
+
+/** Logo propre a une salle, utilise sur ses supports (carte membre).
+ *  Facultatif : sans logo televerse, ces supports retombent sur le logo
+ *  Fitt par defaut. */
+export function televerserLogoGym(gymId: string, fichier: File) {
+  return televerserImage(BUCKET_LOGOS, gymId, fichier);
 }

@@ -8,7 +8,13 @@
 // fonctions de data/espace.ts la redemandent de toute facon, chacune restant
 // ainsi sure prise isolement (§3).
 import Link from "next/link";
-import { CalendarCheck, ChevronRight, CreditCard, ScanLine } from "lucide-react";
+import {
+  CalendarCheck,
+  ChevronRight,
+  Receipt,
+  ScanLine,
+  ShoppingBag,
+} from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/tableau-bord/stat-card";
@@ -47,6 +53,7 @@ export default async function PageEspace() {
             icone={<CalendarCheck className="size-4" />}
             teinte="success"
             precision="depuis le 1er du mois"
+            href="/espace/seances"
           />
           <StatCard
             label="Derniere venue"
@@ -57,11 +64,18 @@ export default async function PageEspace() {
                 ? formatDateHeure(derniereSeance)
                 : "aucun passage enregistre"
             }
+            href="/espace/seances"
           />
         </div>
       </div>
 
-      <div className="cascade grid gap-4 sm:grid-cols-3">
+      {/* Cours et Abonnements vivent deja dans la barre d'onglets du bas
+          (BarreOngletsEspace) : les raccourcis d'accueil couvrent plutot ce
+          qui n'y a pas sa place — l'historique et la boutique — pour ne pas
+          doubler les memes destinations a deux endroits. "Signaler ma
+          presence" reste ici EN PLUS de son onglet : c'est le geste du jour,
+          il merite d'etre vu sans lever le pouce vers la barre. */}
+      <div className="cascade grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Raccourci
           href="/espace/pointer"
           icone={<ScanLine className="size-5 text-brand" />}
@@ -84,10 +98,16 @@ export default async function PageEspace() {
           detail="Toutes vos venues, mois par mois."
         />
         <Raccourci
-          href="/espace/abonnements"
-          icone={<CreditCard className="size-5 text-muted" />}
-          titre="Mes abonnements"
-          detail="Votre formule et son historique."
+          href="/espace/boutique"
+          icone={<ShoppingBag className="size-5 text-muted" />}
+          titre="Boutique"
+          detail="Commandez, reglez et recuperez a la salle."
+        />
+        <Raccourci
+          href="/espace/commandes"
+          icone={<Receipt className="size-5 text-muted" />}
+          titre="Mes commandes"
+          detail="Suivi de vos commandes en cours."
         />
       </div>
     </div>
@@ -126,6 +146,20 @@ function CarteEcheance({
         ? "border-warning/40 bg-warning-soft"
         : "border-success/40 bg-success-soft";
 
+  const couleurBarre =
+    jours <= 0 ? "bg-danger" : jours <= 7 ? "bg-warning" : "bg-success";
+
+  // Part de l'abonnement deja ecoulee, en plus du compte a rebours : un
+  // adherent au 28e jour d'un mensuel et un autre au 350e jour d'un annuel
+  // peuvent avoir le meme nombre de jours restants sans etre dans la meme
+  // situation — la barre le montre d'un coup d'oeil, le chiffre seul non.
+  const dureeTotale = abonnement.finLe.getTime() - abonnement.debutLe.getTime();
+  const ecoule = Date.now() - abonnement.debutLe.getTime();
+  const pourcentEcoule =
+    dureeTotale > 0
+      ? Math.min(100, Math.max(0, (ecoule / dureeTotale) * 100))
+      : 100;
+
   return (
     <Card className={`h-full ${ton}`}>
       <CardBody className="flex h-full flex-col justify-center py-10 text-center">
@@ -138,6 +172,21 @@ function CarteEcheance({
         <p className="mt-1 text-sm font-medium text-ink">
           {jours > 1 ? "jours restants" : "jour restant"}
         </p>
+
+        <div
+          className="mx-auto mt-4 h-1.5 w-full max-w-56 overflow-hidden rounded-pill bg-ink/10"
+          role="progressbar"
+          aria-label="Part de l'abonnement ecoulee"
+          aria-valuenow={Math.round(pourcentEcoule)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className={`h-full rounded-pill ${couleurBarre}`}
+            style={{ width: `${pourcentEcoule}%` }}
+          />
+        </div>
+
         <p className="mt-3 text-xs text-muted">
           {jours > 0
             ? `Du ${formatDate(abonnement.debutLe)} au ${formatDate(abonnement.finLe)}`

@@ -6,8 +6,8 @@
 // a chaque passage sur /salle/initialisation. Le rendre modifiable produirait
 // une modification annulee silencieusement un jour ou l'autre. Il est affiche
 // en lecture seule, avec l'indication de l'endroit ou le changer.
-import { useActionState } from "react";
-import { Check } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Check, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { AlerteFormulaire, Champ, Input } from "@/components/ui/form";
@@ -17,16 +17,91 @@ import {
 } from "@/lib/actions/gym";
 import { formaterTelephoneSalle } from "@/lib/utils/telephone";
 
+/**
+ * Choix du logo de la salle, avec apercu immediat.
+ *
+ * Meme composant que ChampPhoto (produit) et ChampPhotoAdherent (adherent),
+ * adapte au logo : facultatif (sans logo, la carte membre retombe sur le
+ * logo Fitt par defaut), format carre plutot que rond — un logo n'a pas la
+ * meme geometrie qu'un portrait.
+ */
+function ChampLogoSalle({
+  logoActuel,
+  erreurs,
+}: {
+  logoActuel: string | null;
+  erreurs?: string[];
+}) {
+  const [apercu, setApercu] = useState<string | null>(null);
+  const [retirer, setRetirer] = useState(false);
+
+  const image = apercu ?? (retirer ? null : logoActuel);
+
+  return (
+    <Champ
+      label="Logo de la salle"
+      htmlFor="logo"
+      erreurs={erreurs}
+      aide="Facultatif. Remplace le logo Fitt sur la carte membre. JPEG, PNG ou WEBP, 5 Mo maximum."
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-control bg-sunken text-muted">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" className="size-full object-contain" />
+          ) : (
+            <ImageOff className="size-6" aria-hidden="true" />
+          )}
+        </span>
+
+        <input
+          id="logo"
+          name="logo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-invalid={Boolean(erreurs?.length) || undefined}
+          onChange={(e) => {
+            const fichier = e.target.files?.[0];
+            if (fichier) setRetirer(false);
+            setApercu((precedent) => {
+              if (precedent) URL.revokeObjectURL(precedent);
+              return fichier ? URL.createObjectURL(fichier) : null;
+            });
+          }}
+          className="block flex-1 text-sm text-ink file:mr-3 file:h-10 file:rounded-control file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-ink hover:file:bg-sunken"
+        />
+      </div>
+
+      {logoActuel && !apercu && (
+        <label className="mt-2 flex min-h-11 items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            name="retirerLogo"
+            checked={retirer}
+            onChange={(e) => setRetirer(e.target.checked)}
+            className="size-4 accent-[var(--color-brand)]"
+          />
+          Retirer le logo actuel
+        </label>
+      )}
+    </Champ>
+  );
+}
+
 export function FormulaireSalle({
   nom,
   telephone,
   adresse,
   ville,
+  logoUrl,
+  prefixeAdherent,
 }: {
   nom: string;
   telephone: string | null;
   adresse: string | null;
   ville: string | null;
+  logoUrl: string | null;
+  prefixeAdherent: string;
 }) {
   const [etat, action, enCours] = useActionState<EtatFormulaire, FormData>(
     actionModifierParametres,
@@ -59,6 +134,8 @@ export function FormulaireSalle({
           >
             <Input id="nom" name="nom" defaultValue={nom} disabled readOnly />
           </Champ>
+
+          <ChampLogoSalle logoActuel={logoUrl} erreurs={e?.logo} />
 
           <Champ
             label="Telephone"
@@ -96,6 +173,23 @@ export function FormulaireSalle({
               placeholder="Saint-Louis"
               maxLength={80}
               invalide={Boolean(e?.ville)}
+            />
+          </Champ>
+
+          <Champ
+            label="Prefixe du matricule"
+            htmlFor="prefixeAdherent"
+            erreurs={e?.prefixeAdherent}
+            aide="Devant chaque numero d'adherent, ex. POWERGYM-0042. Ne change que les PROCHAINS adherents crees, jamais les numeros deja attribues."
+          >
+            <Input
+              id="prefixeAdherent"
+              name="prefixeAdherent"
+              defaultValue={prefixeAdherent}
+              placeholder="FITT"
+              maxLength={12}
+              className="uppercase"
+              invalide={Boolean(e?.prefixeAdherent)}
             />
           </Champ>
 

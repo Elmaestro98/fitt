@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
 import { normaliserTelephone } from "@/lib/utils/telephone";
 import { formatNumeroAdherent } from "@/lib/utils/format";
+import { televerserPhotoAdherent } from "@/lib/data/stockage";
 import type { StatutAdherent } from "@/generated/prisma/enums";
 
 /* Pagination cote serveur des la premiere ligne (CLAUDE.md §7) : une salle de
@@ -162,6 +163,18 @@ export async function trouverAdherent(id: string) {
 /* --- Modification -------------------------------------------------------- */
 
 /**
+ * Ce que le formulaire demande de faire de la photo (meme principe que
+ * IntentionPhoto dans lib/data/produit.ts).
+ *
+ * "Ne rien envoyer" ne veut PAS dire "retirer la photo" : sans cette
+ * distinction, chaque modification de fiche effacerait la photo existante.
+ */
+export type IntentionPhotoAdherent =
+  | { action: "inchangee" }
+  | { action: "remplacee"; fichier: File }
+  | { action: "retiree" };
+
+/**
  * Met a jour les informations d'un adherent.
  *
  * updateMany et non update, pour la meme raison que partout ailleurs : update
@@ -172,8 +185,20 @@ export async function trouverAdherent(id: string) {
  *  - le numero est fige a la creation (§8, jamais reattribue) ;
  *  - le statut passe par changerStatutAdherent, qui a sa propre liste blanche.
  */
-export async function modifierAdherent(id: string, donnees: NouvelAdherent) {
+export async function modifierAdherent(
+  id: string,
+  donnees: NouvelAdherent,
+  photo: IntentionPhotoAdherent = { action: "inchangee" },
+) {
   const { gymId } = await getTenantContext();
+
+  // Le televersement a lieu AVANT l'ecriture, hors de toute transaction —
+  // meme raison que creerAdherent : ne pas immobiliser une connexion du pool
+  // pendant l'appel reseau vers Supabase Storage.
+  const photoUrl =
+    photo.action === "remplacee"
+      ? await televerserPhotoAdherent(gymId, photo.fichier)
+      : null;
 
   const resultat = await prisma.adherent.updateMany({
     where: { id, gymId },
@@ -186,6 +211,10 @@ export async function modifierAdherent(id: string, donnees: NouvelAdherent) {
       dateNaissance: donnees.dateNaissance ?? null,
       adresse: donnees.adresse || null,
       notes: donnees.notes || null,
+      // Champ volontairement absent quand la photo est inchangee : l'omettre
+      // laisse la valeur en base, alors que photoUrl: null l'effacerait.
+      ...(photo.action === "remplacee" ? { photoUrl } : {}),
+      ...(photo.action === "retiree" ? { photoUrl: null } : {}),
     },
   });
 
@@ -239,8 +268,27 @@ export const schemaNouvelAdherent = z.object({
 
 export type NouvelAdherent = z.infer<typeof schemaNouvelAdherent>;
 
-export async function creerAdherent(donnees: NouvelAdherent) {
+/**
+ * @param photo Facultative (§4 : une salle qui saisit 300 adherents au
+ *   carnet ne mettra pas 300 photos). "retiree" n'a pas de sens ici — il n'y
+ *   a encore aucune photo a enlever — mais accepter le meme type que
+ *   modifierAdherent evite une seconde forme d'appel pour un seul appelant
+ *   (actionCreerAdherent).
+ */
+export async function creerAdherent(
+  donnees: NouvelAdherent,
+  photo: IntentionPhotoAdherent = { action: "inchangee" },
+) {
   const { gymId } = await getTenantContext();
+
+  // Le televersement a lieu AVANT la transaction et hors d'elle : garder une
+  // transaction Prisma ouverte pendant un appel reseau externe immobiliserait
+  // une connexion du pool pour la duree du transfert (meme regle que
+  // creerProduit, lib/data/produit.ts).
+  const photoUrl =
+    photo.action === "remplacee"
+      ? await televerserPhotoAdherent(gymId, photo.fichier)
+      : null;
 
   // Transaction : l'increment du compteur et la creation doivent reussir ou
   // echouer ensemble. Sinon deux receptionnistes qui enregistrent en meme
@@ -249,13 +297,16 @@ export async function creerAdherent(donnees: NouvelAdherent) {
     const gym = await tx.gym.update({
       where: { id: gymId },
       data: { dernierNumeroAdherent: { increment: 1 } },
-      select: { dernierNumeroAdherent: true },
+      select: { dernierNumeroAdherent: true, prefixeAdherent: true },
     });
 
     return tx.adherent.create({
       data: {
         gymId,
-        numero: formatNumeroAdherent(gym.dernierNumeroAdherent),
+        numero: formatNumeroAdherent(
+          gym.dernierNumeroAdherent,
+          gym.prefixeAdherent,
+        ),
         prenom: donnees.prenom,
         nom: donnees.nom,
         telephone: donnees.telephone!,
@@ -264,6 +315,7 @@ export async function creerAdherent(donnees: NouvelAdherent) {
         dateNaissance: donnees.dateNaissance ?? null,
         adresse: donnees.adresse || null,
         notes: donnees.notes || null,
+        photoUrl,
       },
     });
   });
@@ -295,7 +347,7 @@ export async function telephonesExistants(
 
 /**
  * Cree plusieurs adherents en une seule transaction, avec une numerotation
- * FITT-XXXX sequentielle (§8) — meme garantie que creerAdherent (le verrou
+ * sequentielle au prefixe de la salle (§8) — meme garantie que creerAdherent (le verrou
  * de la transaction empeche deux imports simultanes de se chevaucher), mais
  * l'increment se fait en un seul coup pour tout le lot.
  *
@@ -311,7 +363,7 @@ export async function importerAdherents(lignes: NouvelAdherent[]) {
     const gym = await tx.gym.update({
       where: { id: gymId },
       data: { dernierNumeroAdherent: { increment: lignes.length } },
-      select: { dernierNumeroAdherent: true },
+      select: { dernierNumeroAdherent: true, prefixeAdherent: true },
     });
 
     const premierNumero = gym.dernierNumeroAdherent - lignes.length + 1;
@@ -319,7 +371,10 @@ export async function importerAdherents(lignes: NouvelAdherent[]) {
     const resultat = await tx.adherent.createMany({
       data: lignes.map((donnees, index) => ({
         gymId,
-        numero: formatNumeroAdherent(premierNumero + index),
+        numero: formatNumeroAdherent(
+          premierNumero + index,
+          gym.prefixeAdherent,
+        ),
         prenom: donnees.prenom,
         nom: donnees.nom,
         telephone: donnees.telephone!,

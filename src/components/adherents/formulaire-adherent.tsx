@@ -3,7 +3,8 @@
 // Composant client : il affiche l'etat "en cours d'envoi" et les erreurs
 // renvoyees par le serveur. La validation, elle, reste entierement serveur.
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import {
@@ -29,7 +30,78 @@ export type ValeursAdherent = {
   sexe: string | null;
   dateNaissance: Date | null;
   notes: string | null;
+  photoUrl?: string | null;
 };
+
+/**
+ * Choix de la photo de profil, avec apercu immediat.
+ *
+ * Meme logique que ChampPhoto du formulaire produit : la photo est
+ * FACULTATIVE (les initiales restent l'affichage normal, §6/CLAUDE.md), donc
+ * ce champ ne bloque jamais la soumission.
+ */
+function ChampPhotoAdherent({
+  photoActuelle,
+  erreurs,
+}: {
+  photoActuelle: string | null;
+  erreurs?: string[];
+}) {
+  const [apercu, setApercu] = useState<string | null>(null);
+  const [retirer, setRetirer] = useState(false);
+
+  const image = apercu ?? (retirer ? null : photoActuelle);
+
+  return (
+    <Champ
+      label="Photo"
+      htmlFor="photo"
+      erreurs={erreurs}
+      aide="Facultative. JPEG, PNG ou WEBP, 5 Mo maximum."
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sunken text-muted">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" className="size-full object-cover" />
+          ) : (
+            <User className="size-6" aria-hidden="true" />
+          )}
+        </span>
+
+        <input
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-invalid={Boolean(erreurs?.length) || undefined}
+          onChange={(e) => {
+            const fichier = e.target.files?.[0];
+            if (fichier) setRetirer(false);
+            setApercu((precedent) => {
+              if (precedent) URL.revokeObjectURL(precedent);
+              return fichier ? URL.createObjectURL(fichier) : null;
+            });
+          }}
+          className="block flex-1 text-sm text-ink file:mr-3 file:h-10 file:rounded-control file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-ink hover:file:bg-sunken"
+        />
+      </div>
+
+      {photoActuelle && !apercu && (
+        <label className="mt-2 flex min-h-11 items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            name="retirerPhoto"
+            checked={retirer}
+            onChange={(e) => setRetirer(e.target.checked)}
+            className="size-4 accent-[var(--color-brand)]"
+          />
+          Retirer la photo actuelle
+        </label>
+      )}
+    </Champ>
+  );
+}
 
 type Props = {
   /** Server Action, deja liee a l'id en mode modification. */
@@ -67,6 +139,11 @@ export function FormulaireAdherent({
       <Card>
         <CardBody className="space-y-4 pt-5">
           <h2 className="text-sm font-semibold text-ink">Identite</h2>
+
+          <ChampPhotoAdherent
+            photoActuelle={v?.photoUrl ?? null}
+            erreurs={e?.photo}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label="Prenom" htmlFor="prenom" requis erreurs={e?.prenom}>

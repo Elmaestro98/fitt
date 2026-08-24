@@ -6,7 +6,9 @@ import {
   modifierParametresSalle,
   renouvelerCodeSeance,
   schemaParametresSalle,
+  type IntentionLogoGym,
 } from "@/lib/data/gym";
+import { PhotoInvalideError } from "@/lib/data/stockage";
 import { messageErreur } from "@/lib/utils/erreurs";
 
 export type EtatFormulaire = {
@@ -27,6 +29,20 @@ function lire(formData: FormData) {
   return objet;
 }
 
+/** Meme logique que lireIntentionPhoto dans lib/actions/produit.ts et
+ *  lib/actions/adherent.ts : un <input type="file"> non renseigne arrive
+ *  comme un File de taille 0, jamais comme un champ absent. */
+function lireIntentionLogo(formData: FormData): IntentionLogoGym {
+  const fichier = formData.get("logo");
+  if (fichier instanceof File && fichier.size > 0) {
+    return { action: "remplacee", fichier };
+  }
+  if (formData.get("retirerLogo") === "on") {
+    return { action: "retiree" };
+  }
+  return { action: "inchangee" };
+}
+
 export async function actionModifierParametres(
   _precedent: EtatFormulaire,
   formData: FormData,
@@ -37,16 +53,21 @@ export async function actionModifierParametres(
   }
 
   try {
-    await modifierParametresSalle(resultat.data);
+    await modifierParametresSalle(resultat.data, lireIntentionLogo(formData));
   } catch (erreur) {
+    if (erreur instanceof PhotoInvalideError) {
+      return { erreurs: { logo: [erreur.message] } };
+    }
     return {
       message: messageErreur(erreur, "L'enregistrement a echoue. Reessayez."),
     };
   }
 
   revalidatePath("/parametres");
-  // Le nom et les coordonnees de la salle s'affichent aussi ailleurs.
+  // Le nom, les coordonnees et le logo de la salle s'affichent aussi
+  // ailleurs.
   revalidatePath("/tableau-de-bord");
+  revalidatePath("/adherents/[id]/carte", "page");
 
   return { succes: true };
 }

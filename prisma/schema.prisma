@@ -131,6 +131,20 @@ model Gym {
   // jamais : un numero libere n'est pas reattribue, meme apres archivage.
   dernierNumeroAdherent Int @default(0)
 
+  // Le prefixe devant le numero, format "PREFIXE-0042" (defaut FITT-0042,
+  // §8). Modifiable a sa guise dans les parametres : changer ce champ n'a
+  // aucun effet retroactif, seuls les PROCHAINS adherents crees en heritent
+  // — meme principe que Formule.prix, jamais recalcule sur les numeros deja
+  // attribues (§9).
+  prefixeAdherent String @default("FITT")
+
+  // Chemin dans Supabase Storage, bucket logos-salles. Distinct du logo Fitt
+  // (public/logo-fitt.png, src/components/ui/logo.tsx) qui reste la marque
+  // DU LOGICIEL et ne change jamais : celui-ci est la marque DE LA SALLE,
+  // utilise sur ses propres supports (carte membre). null = pas encore
+  // televerse, la carte retombe alors sur le logo Fitt par defaut.
+  logoUrl String?
+
   // Code de seance du jour, affiche en grand sur la borne d'accueil.
   //
   // /!\ C'est LA preuve de presence physique de l'auto-pointage : sans lui,

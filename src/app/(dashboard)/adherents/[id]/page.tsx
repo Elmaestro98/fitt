@@ -6,7 +6,7 @@
 // de fausses donnees.
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Pencil, StickyNote } from "lucide-react";
+import { ChevronRight, IdCard, Pencil, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
@@ -92,12 +92,20 @@ export default async function PageFicheAdherent({
         titre="Fiche adherent"
         sousTitre={adherent.numero}
         action={
-          <Link href={`/adherents/${adherent.id}/modifier`}>
-            <Button variante="contour">
-              <Pencil className="size-4" />
-              Modifier
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/adherents/${adherent.id}/carte`}>
+              <Button variante="contour">
+                <IdCard className="size-4" />
+                Carte membre
+              </Button>
+            </Link>
+            <Link href={`/adherents/${adherent.id}/modifier`}>
+              <Button variante="contour">
+                <Pencil className="size-4" />
+                Modifier
+              </Button>
+            </Link>
+          </div>
         }
       />
 
