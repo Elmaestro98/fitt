@@ -29,6 +29,7 @@ import {
   actionRevoquerInvitation,
 } from "@/lib/actions/espace-adherent";
 import { formatDate, formatDateHeure } from "@/lib/utils/format";
+import { lienWhatsApp, messageInvitationEspace } from "@/lib/utils/whatsapp";
 
 export type EtatEspace = {
   invitation: {
@@ -47,11 +48,17 @@ export function CarteEspace({
   adherentId,
   etat,
   invitable,
+  prenomAdherent,
+  telephoneAdherent,
+  nomSalle,
 }: {
   adherentId: string;
   etat: EtatEspace;
   /** Faux pour une fiche en attente de validation ou archivee (§4). */
   invitable: boolean;
+  prenomAdherent: string;
+  telephoneAdherent: string;
+  nomSalle: string;
 }) {
   const [lien, setLien] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -76,7 +83,13 @@ export function CarteEspace({
         {message && <AlerteFormulaire>{message}</AlerteFormulaire>}
 
         {lien ? (
-          <LienGenere lien={lien} onFerme={() => setLien(null)} />
+          <LienGenere
+            lien={lien}
+            prenomAdherent={prenomAdherent}
+            telephoneAdherent={telephoneAdherent}
+            nomSalle={nomSalle}
+            onFerme={() => setLien(null)}
+          />
         ) : (
           <>
             <Statut etat={etat} invitable={invitable} />
@@ -232,9 +245,15 @@ function Phrase({
 
 function LienGenere({
   lien,
+  prenomAdherent,
+  telephoneAdherent,
+  nomSalle,
   onFerme,
 }: {
   lien: string;
+  prenomAdherent: string;
+  telephoneAdherent: string;
+  nomSalle: string;
   onFerme: () => void;
 }) {
   const [copie, setCopie] = useState(false);
@@ -253,7 +272,9 @@ function LienGenere({
   return (
     <div className="space-y-4">
       <div className="rounded-control border border-warning/40 bg-warning-soft px-4 py-3">
-        <p className="text-sm font-medium text-ink">Copiez-le maintenant.</p>
+        <p className="text-sm font-medium text-ink">
+          Envoyez-le maintenant.
+        </p>
         <p className="mt-1 text-xs text-muted">
           Ce lien ne sera plus jamais affiche : nous n&apos;en gardons
           qu&apos;une empreinte chiffree. Si vous le perdez, generez-en un
@@ -269,8 +290,32 @@ function LienGenere({
           onFocus={(e) => e.currentTarget.select()}
           className="h-11 w-full rounded-control border border-line bg-sunken px-3 font-mono text-xs text-ink focus:border-brand focus:outline-none"
         />
+
+        {/* Action principale : le lien part directement dans WhatsApp, avec
+            le message pre-rempli — meme geste que le rappel d'echeance
+            (lib/utils/whatsapp.ts). Le staff garde la main sur l'envoi
+            final, comme partout ailleurs dans le produit. */}
+        <a
+          href={lienWhatsApp(
+            telephoneAdherent,
+            messageInvitationEspace(prenomAdherent, nomSalle, lien),
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button type="button" variante="whatsapp" className="w-full">
+            <Send className="size-4" />
+            Envoyer par WhatsApp
+          </Button>
+        </a>
+
         <div className="flex gap-2">
-          <Button type="button" onClick={copier} className="flex-1">
+          <Button
+            type="button"
+            variante="contour"
+            onClick={copier}
+            className="flex-1"
+          >
             {copie ? (
               <>
                 <Check className="size-4" />
@@ -290,8 +335,7 @@ function LienGenere({
       </div>
 
       <p className="text-xs text-muted">
-        Valable 7 jours, utilisable une seule fois. Transmettez-le par WhatsApp
-        a l&apos;adherent.
+        Valable 7 jours, utilisable une seule fois.
       </p>
     </div>
   );

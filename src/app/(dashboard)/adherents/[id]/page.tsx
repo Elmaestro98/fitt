@@ -129,6 +129,9 @@ export default async function PageFicheAdherent({
               adherent.statut !== "EN_ATTENTE_VALIDATION" &&
               adherent.statut !== "ARCHIVE"
             }
+            prenomAdherent={adherent.prenom}
+            telephoneAdherent={adherent.telephone}
+            nomSalle={gym.nom}
           />
         </div>
 
