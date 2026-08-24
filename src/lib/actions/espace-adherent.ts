@@ -60,9 +60,9 @@ async function origineRequete() {
 /**
  * Invite un adherent a activer son espace.
  *
- * /!\ Le lien renvoye est la seule occasion de le voir. Le staff le copie et
- * le transmet par WhatsApp. Au Lot 2, l'envoi sera automatique — cette action
- * n'aura pas a changer.
+ * /!\ Le lien renvoye est la seule occasion de le voir. Il part directement
+ * dans WhatsApp avec un message pre-rempli (CarteEspace) — le staff n'a plus
+ * qu'a relire et envoyer.
  */
 export async function actionInviterAdherent(
   adherentId: string,

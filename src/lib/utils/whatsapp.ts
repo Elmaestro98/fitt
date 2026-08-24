@@ -37,6 +37,22 @@ export function messageRelanceAbonnement(
 }
 
 /**
+ * Invitation a activer l'espace adherent (§4, §5).
+ *
+ * Meme principe que les autres messages de ce fichier : le staff genere le
+ * lien, ce message pre-rempli s'ouvre dans WhatsApp, et c'est lui qui envoie
+ * d'un clic. Le lien est a usage unique (§4) — inutile de le repeter dans le
+ * texte, il parle de lui-meme une fois ouvert.
+ */
+export function messageInvitationEspace(
+  prenom: string,
+  nomSalle: string,
+  lien: string,
+): string {
+  return `Bonjour ${prenom}, voici votre lien pour activer votre espace ${nomSalle} : ${lien}\n\nVous pourrez y suivre votre abonnement et vos seances. Valable 7 jours, a usage unique.`;
+}
+
+/**
  * Rappel d'une inscription a une seance de cours (Lot 4).
  *
  * Meme principe que messageRelanceAbonnement : pas d'envoi automatique, le

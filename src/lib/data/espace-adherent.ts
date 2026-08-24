@@ -60,9 +60,8 @@ export class AdherentNonInvitableError extends Error {
  * Genere l'invitation nominative d'un adherent.
  *
  * /!\ Le jeton en clair renvoye ici est la SEULE occasion de le voir (§9) :
- * la base n'en garde que l'empreinte. Le staff le copie et le transmet
- * lui-meme. Au Lot 2, l'envoi WhatsApp partira d'ici — le modele ne changera
- * pas pour autant.
+ * la base n'en garde que l'empreinte. Il part directement dans WhatsApp,
+ * pre-rempli, via lib/utils/whatsapp.ts — le staff relit et envoie d'un clic.
  *
  * Les invitations precedentes encore vivantes sont revoquees dans la meme
  * transaction : un seul lien valide a la fois, sinon un lien transmis par
