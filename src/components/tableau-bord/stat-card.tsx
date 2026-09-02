@@ -20,6 +20,7 @@ export function StatCard({
   valeur,
   icone,
   variation,
+  referenceVariation = "periode precedente",
   precision,
   teinte = "brand",
   href,
@@ -27,8 +28,19 @@ export function StatCard({
   label: string;
   valeur: string;
   icone: React.ReactNode;
-  /** Variation en % par rapport au mois precedent. null = pas de reference. */
+  /** Variation en % par rapport a la periode precedente. null = pas de
+   *  reference (periode precedente vide : une division par zero n'aurait
+   *  produit qu'un "+Infini %" ininterpretable). */
   variation?: number | null;
+  /**
+   * Ce a quoi la variation se compare, en toutes lettres.
+   *
+   * Parametrable et non fige a "mois dernier" : le tableau de bord se filtre
+   * desormais par periode, et annoncer "vs mois dernier" sous un chiffre
+   * calcule sur sept jours serait faux — d'autant plus dangereux que rien a
+   * l'ecran ne permettrait de s'en apercevoir.
+   */
+  referenceVariation?: string;
   /** Texte secondaire, affiche quand il n'y a pas de variation. */
   precision?: string;
   teinte?: "brand" | "success" | "warning" | "info";
@@ -99,7 +111,7 @@ export function StatCard({
               <ArrowDownRight className="size-4 transition-transform duration-[var(--duree-courte)] ease-sortie group-hover:translate-y-0.5" />
             )}
             {hausse ? "+" : ""}
-            {variation} % vs mois dernier
+            {variation} % vs {referenceVariation}
           </p>
         ) : (
           precision && <p className="mt-1 text-sm text-muted">{precision}</p>

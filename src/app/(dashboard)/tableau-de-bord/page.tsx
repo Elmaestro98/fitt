@@ -1,6 +1,12 @@
 // Tableau de bord. Structure reprise de public/maquette.png.
 // Server Component : toutes les agregations partent vers PostgreSQL, rien
 // n'est calcule dans le navigateur.
+//
+// La periode d'observation vit dans l'URL (?periode=30j, ou ?du=...&au=...),
+// jamais dans un etat client : la vue est partageable, le bouton "retour"
+// fonctionne, et le serveur reste seul a decider ce que ces parametres
+// veulent dire (lib/utils/periode.ts).
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   CalendarClock,
@@ -16,6 +22,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/tableau-bord/stat-card";
+import { FiltrePeriode } from "@/components/tableau-bord/filtre-periode";
 import { GrapheFrequentation } from "@/components/tableau-bord/graphe-frequentation";
 import { GrapheSouscriptions } from "@/components/tableau-bord/graphe-souscriptions";
 import { RepartitionFormules } from "@/components/tableau-bord/repartition-formules";
@@ -26,7 +33,7 @@ import { adherentsQuiDecrochent } from "@/lib/data/decrochage";
 import {
   abonnementsExpirantBientot,
   evolutionSouscriptions,
-  frequentationHebdomadaire,
+  frequentationPeriode,
   repartitionFormules,
   statistiquesTableauDeBord,
 } from "@/lib/data/tableau-bord";
@@ -36,8 +43,17 @@ import {
   SalleIntrouvableError,
 } from "@/lib/tenant";
 import { formatFCFA } from "@/lib/utils/format";
+import { resoudrePeriode, versDateISO } from "@/lib/utils/periode";
 
 export const metadata = { title: "Tableau de bord — Fitt" };
+
+type Params = { [cle: string]: string | string[] | undefined };
+
+/** Une valeur d'URL peut arriver en tableau (?du=x&du=y) : on ne garde que
+ *  les chaines, le reste est ignore et retombera sur le defaut. */
+function texte(valeur: string | string[] | undefined): string | undefined {
+  return typeof valeur === "string" ? valeur : undefined;
+}
 
 function aujourdhui() {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -49,7 +65,11 @@ function aujourdhui() {
   }).format(new Date());
 }
 
-export default async function PageTableauDeBord() {
+export default async function PageTableauDeBord({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
   let gym;
   try {
     ({ gym } = await getTenantContext());
@@ -73,6 +93,18 @@ export default async function PageTableauDeBord() {
     throw erreur;
   }
 
+  const params = await searchParams;
+
+  // Les parametres viennent de l'utilisateur : aucune de ces trois chaines
+  // n'atteint Prisma telle quelle. resoudrePeriode les valide contre une
+  // liste blanche, reanalyse les dates, borne le recul a trois ans, et
+  // retombe sur le mois en cours a la moindre anomalie.
+  const periode = resoudrePeriode({
+    periode: texte(params.periode),
+    du: texte(params.du),
+    au: texte(params.au),
+  });
+
   // Les statuts echus sont mis a jour avant lecture, sinon les compteurs
   // afficheraient comme actifs des abonnements termines hier.
   await synchroniserExpirations();
@@ -85,11 +117,11 @@ export default async function PageTableauDeBord() {
     frequentation,
     decrochages,
   ] = await Promise.all([
-    statistiquesTableauDeBord(),
-    evolutionSouscriptions(),
+    statistiquesTableauDeBord(periode),
+    evolutionSouscriptions(periode),
     repartitionFormules(),
     abonnementsExpirantBientot(),
-    frequentationHebdomadaire(),
+    frequentationPeriode(periode),
     adherentsQuiDecrochent(),
   ]);
 
@@ -108,15 +140,38 @@ export default async function PageTableauDeBord() {
         }
       />
 
+      {/* useSearchParams impose une frontiere Suspense dans une page rendue
+          cote serveur. Le repli occupe la hauteur exacte de la barre : sans
+          lui, tout l'ecran sauterait d'un cran a l'arrivee du filtre. */}
+      <Suspense fallback={<div className="h-9" />}>
+        <FiltrePeriode
+          cle={periode.cle}
+          libelle={periode.libelle}
+          debutISO={versDateISO(periode.debut)}
+          finISO={versDateISO(periode.dernierJour)}
+          // Le plafond des deux champs est AUJOURD'HUI, jamais le dernier
+          // jour de la periode affichee : sinon, apres avoir consulte le mois
+          // d'avril, on ne pourrait plus etendre sa plage au-dela d'avril.
+          // Calcule ici, cote serveur, et non dans le composant : deux
+          // `new Date()` de part et d'autre tomberaient sur deux jours
+          // differents autour de minuit, et React signalerait une erreur
+          // d'hydratation.
+          maxISO={versDateISO(new Date())}
+        />
+      </Suspense>
+
       {/* cascade : les quatre indicateurs se posent de gauche a droite. Le
           regard suit le mouvement dans l'ordre d'importance, au lieu de
           recevoir quatre chiffres d'un bloc. */}
       <div className="cascade grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Les deux premieres cartes ne suivent PAS le filtre, et leur
+            libelle le dit : ce sont des etats vrais maintenant. "142
+            adherents actifs au mois de juin" ne voudrait rien dire. */}
         <StatCard
           label="Adherents actifs"
           valeur={String(stats.adherentsActifs)}
           icone={<Users className="size-4" />}
-          precision={`sur ${stats.adherentsTotal} au fichier`}
+          precision={`sur ${stats.adherentsTotal} au fichier, aujourd'hui`}
           href="/adherents?statut=ACTIF"
         />
         <StatCard
@@ -124,33 +179,42 @@ export default async function PageTableauDeBord() {
           valeur={String(stats.expirations7j)}
           icone={<CalendarClock className="size-4" />}
           teinte="warning"
-          precision="abonnements a renouveler"
+          precision="a renouveler dans les jours qui viennent"
           href="/abonnements?vue=bientot"
         />
         <StatCard
-          label="Souscrit ce mois"
-          valeur={formatFCFA(stats.souscritMois)}
+          label={`Souscrit · ${periode.libelleCourt}`}
+          valeur={formatFCFA(stats.souscritPeriode)}
           icone={<TrendingUp className="size-4" />}
           teinte="success"
           variation={stats.variationCA}
-          precision="aucune reference le mois dernier"
+          referenceVariation={periode.libelleComparaison}
+          precision="aucune souscription sur la periode precedente"
           href="/abonnements"
         />
         <StatCard
-          label="Nouveaux adherents"
-          valeur={String(stats.nouveauxMois)}
+          label={`Nouveaux · ${periode.libelleCourt}`}
+          valeur={String(stats.nouveauxPeriode)}
           icone={<UserPlus className="size-4" />}
           teinte="info"
           variation={stats.variationNouveaux}
-          precision="inscrits ce mois-ci"
+          referenceVariation={periode.libelleComparaison}
+          precision="aucune inscription sur la periode precedente"
           href="/adherents"
         />
       </div>
 
+      <p className="text-xs text-muted">
+        Le filtre s&apos;applique aux montants souscrits, aux nouvelles
+        inscriptions et a la frequentation. Les adherents actifs, les
+        echeances a venir et la repartition des formules decrivent la
+        situation d&apos;aujourd&apos;hui et ne changent pas avec la periode.
+      </p>
+
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader
-            titre="Souscriptions (6 mois)"
+            titre={`Souscriptions · ${periode.libelle.toLowerCase()}`}
             icone={<TrendingUp className="size-4 text-brand" />}
           />
           <CardBody>
@@ -221,7 +285,7 @@ export default async function PageTableauDeBord() {
 
       <Card>
         <CardHeader
-          titre="Frequentation (7 jours)"
+          titre={`Frequentation · ${periode.libelle.toLowerCase()}`}
           icone={<UserCheck className="size-4 text-brand" />}
           action={
             <Link
@@ -235,15 +299,23 @@ export default async function PageTableauDeBord() {
         <CardBody>
           {frequentation.total === 0 ? (
             <p className="py-8 text-center text-sm text-muted">
-              Aucun passage cette semaine. Les entrees apparaitront ici des le
-              premier pointage.
+              Aucun passage sur cette periode. Les entrees apparaitront ici des
+              le premier pointage.
             </p>
           ) : (
             <>
               <GrapheFrequentation donnees={frequentation.jours} />
               <p className="mt-3 text-xs text-muted">
                 {frequentation.total} passage
-                {frequentation.total > 1 ? "s" : ""} sur sept jours
+                {frequentation.total > 1 ? "s" : ""} en {periode.jours} jour
+                {periode.jours > 1 ? "s" : ""}
+                {/* La moyenne quotidienne est le seul chiffre comparable
+                    d'une periode a l'autre quand elles n'ont pas la meme
+                    longueur : 300 passages ne disent rien tant qu'on ignore
+                    s'ils couvrent une semaine ou un trimestre. */}
+                {periode.jours > 1
+                  ? ` · ${frequentation.moyenneParJour} par jour en moyenne`
+                  : ""}
                 {frequentation.pointe
                   ? ` · affluence maximale vers ${frequentation.pointe}`
                   : ""}
