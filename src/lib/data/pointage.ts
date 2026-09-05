@@ -1,5 +1,13 @@
 // Acces aux donnees du pointage (CLAUDE.md §7 : un fichier par entite).
 //
+// /!\ CE FICHIER N'ECRIT QUE DANS `pointages`. Jamais dans `abonnements`,
+// jamais dans `paiements`, jamais dans `adherents.statut` (CLAUDE.md §9).
+// L'adherent paie un droit d'acces, pas une consommation : son absence ne
+// raccourcit pas son contrat. La fleche ne va que dans un sens — on LIT
+// l'abonnement pour afficher les jours restants a la borne, on ne le touche
+// jamais. Une demande du type "suspendre ceux qui ne viennent plus" se
+// traite par une ALERTE (lib/data/decrochage.ts), pas par une ecriture ici.
+//
 // /!\ Tout ici est ecrit pour un seul objectif : que la borne d'entree
 // continue de fonctionner quand la connexion tombe (§9). D'ou deux partis
 // pris inhabituels :
@@ -11,6 +19,7 @@ import "server-only";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/tenant";
+import { critereRechercheAdherent } from "@/lib/data/adherent";
 
 /** Anti-rebond : deux passages du meme adherent a moins de 2 minutes n'en
  *  font qu'un. Un adherent qui repasse sa carte parce qu'il n'a pas vu
@@ -272,4 +281,185 @@ export async function pointagesAdherent(adherentId: string, limite = 20) {
   ]);
 
   return { passages, total };
+}
+
+/* --- Registre de presence -------------------------------------------------- */
+
+/*
+ * Le registre repond a la question que rien ne savait traiter jusqu'ici :
+ * "qui est venu le 3 septembre ?". La borne affiche les douze derniers
+ * passages, la fiche d'un adherent les vingt siens — le journal complet de la
+ * salle n'existait nulle part.
+ *
+ * /!\ LECTURE SEULE, et c'est structurel : consulter les presences ne doit
+ * jamais devenir un moyen d'agir sur un contrat (regle rappelee en tete de ce
+ * fichier). Tout ce qui suit interroge, rien n'ecrit.
+ */
+
+export const PAR_PAGE_REGISTRE = 25;
+
+/* Liste blanche des sources acceptees depuis une URL. Elle double l'enum
+   Prisma a dessein : une valeur inventee dans la barre d'adresse doit etre
+   ecartee AVANT d'atteindre la base, pas provoquer une erreur du moteur. */
+export const SOURCES = ["KIOSQUE", "STAFF", "ADHERENT"] as const;
+export type SourceRegistre = (typeof SOURCES)[number];
+
+/* Plafond de l'export CSV. Trois ans d'une salle de 400 adherents tiennent
+   largement dessous ; la borne existe pour qu'aucune requete ne puisse
+   immobiliser le serveur d'une salle qui en a besoin au meme moment. */
+const MAX_EXPORT = 5000;
+
+export type FiltresRegistre = {
+  page?: number;
+  recherche?: string;
+  /** Premier jour COMPRIS, au format "2026-09-03". */
+  du?: string;
+  /** Dernier jour COMPRIS, meme format. */
+  au?: string;
+  source?: SourceRegistre;
+};
+
+/**
+ * "2026-09-03" -> minuit UTC de ce jour, ou null si la chaine ne tient pas.
+ *
+ * /!\ La verification du mois n'est pas superflue : Date.UTC(2026, 1, 31) ne
+ * jette pas, il DEBORDE silencieusement sur le 3 mars. Sans ce controle, une
+ * date impossible tapee dans l'URL donnerait une periode plausible mais
+ * fausse, et le gerant lirait un registre decale sans jamais s'en douter.
+ */
+function jourUTC(iso?: string): Date | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+
+  const [annee, mois, jour] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(annee, mois - 1, jour));
+
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getUTCMonth() !== mois - 1 || date.getUTCDate() !== jour) return null;
+
+  return date;
+}
+
+/**
+ * Le `where` du registre. Ecrit une seule fois, consomme par la liste
+ * paginee, les compteurs ET l'export : trois vues d'une meme selection qui ne
+ * peuvent pas diverger, puisqu'elles partagent le critere.
+ */
+function whereRegistre(gymId: string, filtres: FiltresRegistre) {
+  const du = jourUTC(filtres.du);
+  const au = jourUTC(filtres.au);
+
+  // `au` designe un jour COMPRIS dans la selection : la borne envoyee a
+  // Prisma est donc minuit du LENDEMAIN, en `lt`. Avec un `lte` pose sur
+  // minuit, toute la derniere journee disparaitrait du registre — meme
+  // precaution que la borne exclusive de lib/utils/periode.ts.
+  const finExclusive = au ? new Date(au.getTime() + 86_400_000) : null;
+
+  return {
+    gymId,
+    ...(filtres.source ? { source: filtres.source } : {}),
+    ...(du || finExclusive
+      ? {
+          horodatage: {
+            ...(du ? { gte: du } : {}),
+            ...(finExclusive ? { lt: finExclusive } : {}),
+          },
+        }
+      : {}),
+    // Le critere de recherche est IMPORTE de lib/data/adherent.ts, jamais
+    // recopie : c'est la que se logeait le piege du `contains: ""` (§6), et
+    // le registre cherche exactement les memes adherents que la liste.
+    ...(filtres.recherche?.trim()
+      ? { adherent: critereRechercheAdherent(filtres.recherche) }
+      : {}),
+  };
+}
+
+/**
+ * Le journal des passages de la salle, filtre et pagine cote serveur.
+ *
+ * Renvoie aussi les compteurs de LA SELECTION, pas de la journee en cours :
+ * le gerant qui filtre sur une semaine veut le total de cette semaine.
+ */
+export async function listerPointages(filtres: FiltresRegistre = {}) {
+  const { gymId } = await getTenantContext();
+
+  const page = Math.max(1, filtres.page ?? 1);
+  const where = whereRegistre(gymId, filtres);
+
+  const [passages, total, adherentsVenus, aRegulariser] = await Promise.all([
+    prisma.pointage.findMany({
+      where,
+      orderBy: { horodatage: "desc" },
+      skip: (page - 1) * PAR_PAGE_REGISTRE,
+      take: PAR_PAGE_REGISTRE,
+      select: {
+        id: true,
+        horodatage: true,
+        source: true,
+        statutAdherent: true,
+        adherent: {
+          select: {
+            id: true,
+            prenom: true,
+            nom: true,
+            numero: true,
+            photoUrl: true,
+          },
+        },
+      },
+    }),
+    prisma.pointage.count({ where }),
+    // groupBy plutot que findMany({ distinct }) : le DISTINCT est alors fait
+    // par PostgreSQL, qui ne renvoie qu'une ligne par adherent. Le `distinct`
+    // de Prisma, lui, rapatrie d'abord TOUS les passages pour les dedupliquer
+    // en memoire — sur "toute la periode", c'est la difference entre trois
+    // cents lignes et plusieurs dizaines de milliers.
+    prisma.pointage
+      .groupBy({ by: ["adherentId"], where })
+      .then((lignes) => lignes.length),
+    // Passages enregistres alors que l'abonnement ne couvrait plus rien. Ce
+    // n'est PAS un refus d'entree (§9) : c'est la liste de ce que la
+    // reception a a regulariser.
+    prisma.pointage.count({
+      where: { ...where, statutAdherent: { in: ["EXPIRE", "SUSPENDU"] } },
+    }),
+  ]);
+
+  return {
+    passages,
+    total,
+    page,
+    pages: Math.max(1, Math.ceil(total / PAR_PAGE_REGISTRE)),
+    adherentsVenus,
+    aRegulariser,
+  };
+}
+
+export type LignePointage = Awaited<
+  ReturnType<typeof listerPointages>
+>["passages"][number];
+
+/**
+ * Les memes passages, sans pagination, pour le telechargement CSV.
+ *
+ * Le telephone y figure alors qu'il est absent du tableau a l'ecran : un
+ * fichier exporte sert justement a rappeler les absents ou a croiser avec un
+ * autre outil, et il ne quitte pas le poste du gerant.
+ */
+export async function lignesExportRegistre(filtres: FiltresRegistre = {}) {
+  const { gymId } = await getTenantContext();
+
+  return prisma.pointage.findMany({
+    where: whereRegistre(gymId, filtres),
+    orderBy: { horodatage: "desc" },
+    take: MAX_EXPORT,
+    select: {
+      horodatage: true,
+      source: true,
+      statutAdherent: true,
+      adherent: {
+        select: { prenom: true, nom: true, numero: true, telephone: true },
+      },
+    },
+  });
 }

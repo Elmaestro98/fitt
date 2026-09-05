@@ -13,9 +13,27 @@ import { actionPointerEspace } from "@/lib/actions/espace-pointage";
 
 const CASES = [0, 1, 2, 3];
 
-export function FormulairePointage() {
+/**
+ * `codePreRempli` arrive du QR affiche a l'accueil : l'adherent l'a scanne,
+ * les quatre cases sont deja remplies, il ne lui reste qu'a confirmer.
+ *
+ * /!\ On NE pointe PAS automatiquement a l'ouverture de la page. Un
+ * enregistrement declenche par le simple chargement d'une adresse se
+ * rejouerait a chaque retour en arriere, a chaque rechargement, et pourrait
+ * partir depuis un lien recu par message sans que la personne ait rien
+ * demande. Un appui volontaire sur un bouton reste la seule facon honnete de
+ * dire "je suis la" — et cela laisse aussi la possibilite de corriger un code
+ * scanne sur un ecran perime.
+ */
+export function FormulairePointage({
+  codePreRempli,
+}: {
+  codePreRempli?: string;
+} = {}) {
   const router = useRouter();
-  const [chiffres, setChiffres] = useState(["", "", "", ""]);
+  const [chiffres, setChiffres] = useState(() =>
+    CASES.map((i) => codePreRempli?.[i] ?? ""),
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [fait, setFait] = useState(false);
   const [enCours, demarrer] = useTransition();
@@ -118,7 +136,11 @@ export function FormulairePointage() {
         className="h-12 w-full"
       >
         {enCours && <Loader2 className="size-4 animate-spin" />}
-        {enCours ? "Enregistrement..." : "Je suis la"}
+        {enCours
+          ? "Enregistrement..."
+          : codePreRempli
+            ? "Confirmer ma presence"
+            : "Je suis la"}
       </Button>
     </div>
   );

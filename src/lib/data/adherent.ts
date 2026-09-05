@@ -26,7 +26,8 @@ export type FiltresAdherents = {
 
 /**
  * Le critere "ce texte correspond a un adherent", partage par la liste
- * paginee et la recherche globale de la barre haute.
+ * paginee, la recherche globale de la barre haute et le registre de
+ * presence (lib/data/pointage.ts), qui l'imbrique sous `adherent`.
  *
  * /!\ Ecrit UNE fois et reutilise : c'est ici que se logeait le bug du
  * `contains: ""` (§6), et le dupliquer serait le meilleur moyen de le
@@ -35,7 +36,7 @@ export type FiltresAdherents = {
  * Renvoie un objet vide quand il n'y a rien a chercher, pour pouvoir
  * l'etaler dans un `where` sans condition a l'appel.
  */
-function critereRecherche(recherche?: string) {
+export function critereRechercheAdherent(recherche?: string) {
   const termes = recherche?.trim();
   if (!termes) return {};
 
@@ -67,7 +68,7 @@ export async function listerAdherents({
   const where = {
     gymId,
     ...(statut ? { statut } : {}),
-    ...critereRecherche(recherche),
+    ...critereRechercheAdherent(recherche),
   };
 
   // Une seule aller-retour reseau pour les deux requetes.
@@ -111,7 +112,7 @@ export async function rechercheRapideAdherents(recherche: string) {
   // n'interroge la base qu'a partir de deux caracteres.
   if (termes.length < 2) return { resultats: [], total: 0 };
 
-  const where = { gymId, ...critereRecherche(termes) };
+  const where = { gymId, ...critereRechercheAdherent(termes) };
 
   const [resultats, total] = await Promise.all([
     prisma.adherent.findMany({

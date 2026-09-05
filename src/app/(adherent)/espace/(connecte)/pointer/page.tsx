@@ -14,8 +14,26 @@ import { formatDateHeure } from "@/lib/utils/format";
 
 export const metadata = { title: "Signaler ma presence — Fitt" };
 
-export default async function PagePointer() {
-  const { gym, dejaPointeAujourdhui, derniereSeance } = await accueilEspace();
+type Params = { [cle: string]: string | string[] | undefined };
+
+/* Le code arrive du QR affiche a l'accueil (?code=1234). On ne garde que
+   quatre chiffres : tout le reste est ecarte ici, et de toute facon
+   revalide cote serveur avant la moindre ecriture. */
+function codeDeLUrl(valeur: string | string[] | undefined): string | undefined {
+  if (typeof valeur !== "string") return undefined;
+  const chiffres = valeur.replace(/\D/g, "");
+  return chiffres.length === 4 ? chiffres : undefined;
+}
+
+export default async function PagePointer({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const [{ gym, dejaPointeAujourdhui, derniereSeance }, params] =
+    await Promise.all([accueilEspace(), searchParams]);
+
+  const codeScanne = codeDeLUrl(params.code);
 
   return (
     <div className="space-y-5">
@@ -44,15 +62,18 @@ export default async function PagePointer() {
                 <MapPin className="size-5 text-brand" />
               </span>
               <p className="text-sm font-medium text-ink">
-                Saisissez le code du jour
+                {codeScanne
+                  ? "Confirmez votre presence"
+                  : "Saisissez le code du jour"}
               </p>
               <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
-                Il est affiche a l&apos;accueil de la salle et change chaque
-                jour.
+                {codeScanne
+                  ? "Le code scanne est deja rempli. Un appui, et votre venue est enregistree."
+                  : "Il est affiche a l'accueil de la salle et change chaque jour."}
               </p>
             </div>
 
-            <FormulairePointage />
+            <FormulairePointage codePreRempli={codeScanne} />
           </CardBody>
         </Card>
 

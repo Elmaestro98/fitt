@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { origineRequete } from "@/lib/utils/url";
 import { z } from "zod";
 import {
   creerLienInscription,
@@ -34,27 +34,6 @@ function nettoyer(formData: FormData) {
   return objet;
 }
 
-/**
- * Origine du site telle que le navigateur l'a vue.
- *
- * Deduite des en-tetes plutot que d'une variable d'environnement : le lien
- * fonctionne ainsi en local (localhost:3001), sur une preview Vercel et en
- * production, sans configuration. NEXT_PUBLIC_APP_URL reste prioritaire si
- * elle est definie, pour le cas d'un nom de domaine personnalise.
- */
-async function origineRequete() {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  }
-
-  const enTetes = await headers();
-  const hote = enTetes.get("x-forwarded-host") ?? enTetes.get("host") ?? "";
-  const protocole =
-    enTetes.get("x-forwarded-proto") ??
-    (hote.startsWith("localhost") ? "http" : "https");
-
-  return `${protocole}://${hote}`;
-}
 
 /* --- Cote staff ----------------------------------------------------------- */
 
